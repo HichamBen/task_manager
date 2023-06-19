@@ -12,7 +12,6 @@ import Icon from 'react-native-vector-icons/FontAwesome5';
 import {TaskContextProvider} from './context/TaskContext';
 
 const TabStack = createBottomTabNavigator<RootTabParamList>();
-
 const optionsScreen = <T extends keyof RootTabParamList>({
   route,
 }: RootTabScreenProps<T>) => ({
@@ -55,6 +54,7 @@ function App(): JSX.Element {
           <TabStack.Screen
             options={{
               title: 'Add Task',
+              unmountOnBlur: true,
             }}
             name="CreateTask"
             component={CreateTask}

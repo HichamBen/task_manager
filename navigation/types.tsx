@@ -2,7 +2,7 @@ import {BottomTabScreenProps} from '@react-navigation/bottom-tabs';
 
 export type RootTabParamList = {
   Home: undefined;
-  CreateTask: {taskId: string} | undefined;
+  CreateTask: {taskId?: string; isEdit?: boolean};
   Archive: undefined;
   Drafts: {taskId: string} | undefined;
 };

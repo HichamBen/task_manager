@@ -79,7 +79,9 @@ function TaskCard({
       {/* edit & delete icons */}
       <View style={styles.icons}>
         <TouchableOpacity
-          onPress={() => navigation.jumpTo('CreateTask', {taskId})}>
+          onPress={() =>
+            navigation.jumpTo('CreateTask', {taskId, isEdit: true})
+          }>
           <Icon name="edit" size={20} color="#557cff" />
         </TouchableOpacity>
 

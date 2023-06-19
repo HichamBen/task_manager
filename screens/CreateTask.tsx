@@ -20,7 +20,8 @@ import CheckInputItem, {
 } from '../components/CheckInputItem';
 
 function CreateTask(): JSX.Element {
-  const navigation = useNavigation<RootTabScreenProps<'Home'>['navigation']>();
+  const navigation =
+    useNavigation<RootTabScreenProps<'CreateTask'>['navigation']>();
   const route = useRoute<RootTabScreenProps<'CreateTask'>['route']>();
 
   const [title, setTitle] = useState<string>();
@@ -38,25 +39,35 @@ function CreateTask(): JSX.Element {
 
   const {state, dispatch} = useContext(TaskContext);
 
-  // fill task form to edited
+  // fill task form to edited;
+  console.log(route.params);
   useEffect(() => {
-    let task = state.tasks.find(item => item.taskId === route.params?.taskId);
-    setTitle(task?.title);
-    setDescription(task?.description);
-    setDueTime(task?.dueTime);
-    if (task?.checkList) {
-      setCheckList(task.checkList);
-      let list = [];
-      for (let i = 0; i < task.checkList.length; i++) {
-        list.push(CheckInputItem);
+    if (route.params.isEdit) {
+      let task = state.tasks.find(item => item.taskId === route.params?.taskId);
+      setTitle(task?.title);
+      setDescription(task?.description);
+      setDueTime(task?.dueTime);
+      if (task?.checkList) {
+        let list = [];
+        for (let i = 0; i < task.checkList.length; i++) {
+          list.push(CheckInputItem);
+        }
+        setCheckListItems(list);
+        setCheckList(task.checkList);
       }
-      setCheckListItems(list);
     }
-  }, [route.params?.taskId, state.tasks]);
+
+    return () => {
+      navigation.setParams({taskId: undefined, isEdit: undefined});
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // scroll to the end
   useEffect(() => {
-    scrollView.current.scrollToEnd({animated: true});
+    if (checkListItems) {
+      scrollView.current.scrollToEnd({animated: true});
+    }
   }, [checkListItems]);
 
   const addCheckListItem = () => {
@@ -107,6 +118,28 @@ function CreateTask(): JSX.Element {
     navigation.jumpTo('Home');
   };
 
+  const editTask = () => {
+    if (route.params?.taskId) {
+      dispatch({
+        type: 'EDIT_TASK',
+        payload: {
+          taskId: route.params.taskId,
+          title,
+          description,
+          dueTime,
+          checkList,
+        },
+      });
+    }
+    setTitle('');
+    setDescription('');
+    setDueTime(undefined);
+    setCheckListItems([]);
+    setCheckList([]);
+
+    navigation.jumpTo('Home');
+  };
+
   return (
     <ScrollView
       ref={scrollView}
@@ -147,23 +180,15 @@ function CreateTask(): JSX.Element {
           onBlur={() => setDescIsFocused(false)}
         />
 
-        {checkListItems && (
-          <View>
-            {checkListItems.map((Item, id) => (
-              <Item
-                key={id}
-                checkItemId={id + 1}
-                removeItem={removeCheckListItem}
-                setCheckList={setCheckList}
-                checkList={checkList}
-                title={
-                  checkList.find(item => item.checkListItemId === id + 1)
-                    ?.content
-                }
-              />
-            ))}
-          </View>
-        )}
+        {checkListItems?.map((Item, id) => (
+          <Item
+            key={id}
+            checkItemId={id + 1}
+            removeItem={removeCheckListItem}
+            setCheckList={setCheckList}
+            checkList={checkList}
+          />
+        ))}
 
         <TouchableOpacity
           onPress={addCheckListItem}
@@ -178,11 +203,19 @@ function CreateTask(): JSX.Element {
           styles.saveDueBtns,
           checkListItems.length > 0 && {transform: [{translateY: -30}]},
         ]}>
-        <Pressable
-          onPress={saveATask}
-          style={({pressed}) => [styles.btns, pressed && styles.activeBtn]}>
-          <Text style={styles.save}>Save</Text>
-        </Pressable>
+        {route.params?.isEdit ? (
+          <Pressable
+            onPress={editTask}
+            style={({pressed}) => [styles.btns, pressed && styles.activeBtn]}>
+            <Icon name="edit" size={20} color="white" />
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={saveATask}
+            style={({pressed}) => [styles.btns, pressed && styles.activeBtn]}>
+            <Text style={styles.save}>Save</Text>
+          </Pressable>
+        )}
         <Pressable
           onPress={() => setisModalShown(true)}
           style={({pressed}) => [

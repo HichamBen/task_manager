@@ -1,11 +1,10 @@
 import {View, TextInput, StyleSheet, TouchableOpacity} from 'react-native';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import {CheklistProps} from '../context/TaskContext';
 
 export type CheckInputItemProps = {
   checkItemId: number;
-  title?: string;
   removeItem: (id: number) => void;
   checkList: CheklistProps[];
   setCheckList: React.Dispatch<React.SetStateAction<CheklistProps[]>>;
@@ -13,15 +12,28 @@ export type CheckInputItemProps = {
 
 const CheckInputItem = ({
   checkItemId,
-  title,
   removeItem,
+  checkList,
   setCheckList,
 }: CheckInputItemProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const [taskTitle, setTaskTitle] = useState('');
+  const firtFill = useRef(false);
 
   useEffect(() => {
-    if (taskTitle) {
+    let item = checkList.find(
+      listItem => listItem.checkListItemId === checkItemId,
+    );
+    if (item) {
+      setTaskTitle(item.content);
+      firtFill.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkItemId]);
+
+  useEffect(() => {
+    if (isFocused && taskTitle) {
+      firtFill.current = false;
       setCheckList(prev => {
         let isExist: boolean = false;
         let editItem = prev.map(item => {
@@ -44,12 +56,16 @@ const CheckInputItem = ({
 
         return newList;
       });
-    } else {
-      setCheckList(prev =>
-        prev?.filter(item => item.checkListItemId !== checkItemId),
-      );
     }
-  }, [taskTitle, checkItemId, setCheckList]);
+
+    return () => {
+      if (!firtFill.current && !taskTitle) {
+        setCheckList(prev =>
+          prev?.filter(item => item.checkListItemId !== checkItemId),
+        );
+      }
+    };
+  }, [taskTitle, checkItemId, setCheckList, isFocused]);
 
   return (
     <View
@@ -67,12 +83,12 @@ const CheckInputItem = ({
       <TextInput
         placeholder={`Task ${checkItemId}`}
         placeholderTextColor="lightgray"
-        defaultValue={title}
         multiline
         style={styles.input}
         onChangeText={text => setTaskTitle(text)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
+        value={taskTitle}
       />
       <TouchableOpacity
         onPress={() => removeItem(checkItemId)}
