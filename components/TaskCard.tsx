@@ -1,19 +1,11 @@
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
-import React, {useContext, useEffect, useState} from 'react';
+import React, {memo, useContext} from 'react';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import CheckItem from './CheckItem';
-import {CheklistProps, TaskContext} from '../context/TaskContext';
+import {TaskContext, TaskProps} from '../context/TaskContext';
 import ProgressBar from './ProgressBar';
 import {useNavigation} from '@react-navigation/native';
 import {RootTabScreenProps} from '../navigation/types';
-
-type TaskCardProps = {
-  taskId: string;
-  title: string | undefined;
-  description: string | undefined;
-  checkList?: CheklistProps[];
-  dueTime?: string[];
-};
 
 function TaskCard({
   taskId,
@@ -21,11 +13,10 @@ function TaskCard({
   dueTime,
   description,
   checkList,
-}: TaskCardProps): JSX.Element {
+}: TaskProps): JSX.Element {
   const navigation =
     useNavigation<RootTabScreenProps<'CreateTask'>['navigation']>();
   const {dispatch} = useContext(TaskContext);
-  const [checkedItems, setCheckedItems] = useState<Number[]>([]);
 
   const deleteATask = (id: string) => {
     dispatch({
@@ -38,23 +29,20 @@ function TaskCard({
     });
   };
 
-  useEffect(() => {
+  const editCheckList = (itemId: number, isChecked: boolean) => {
     dispatch({
       type: 'EDIT_TASK',
       payload: {
         taskId,
         checkList: checkList?.map(item => {
-          if (checkedItems.includes(item.checkListItemId)) {
-            item.isChecked = true;
-          } else {
-            item.isChecked = false;
+          if (item.checkListItemId === itemId) {
+            item.isChecked = isChecked;
           }
           return item;
         }),
       },
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkedItems, dispatch, taskId]);
+  };
 
   return (
     <View style={styles.card}>
@@ -72,7 +60,7 @@ function TaskCard({
             id={item.checkListItemId}
             description={item.content}
             isChecked={item.isChecked}
-            setCheckedItems={setCheckedItems}
+            editCheckList={editCheckList}
           />
         ))}
 
@@ -161,4 +149,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TaskCard;
+export default memo(TaskCard);

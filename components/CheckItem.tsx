@@ -1,38 +1,33 @@
 import {Text, TouchableOpacity, StyleSheet} from 'react-native';
-import React, {useEffect, useState} from 'react';
+import React from 'react';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 
 type CheckItemProps = {
   id: number;
   description: string;
   isChecked: boolean;
-  setCheckedItems: React.Dispatch<React.SetStateAction<Number[]>>;
+  editCheckList: (itemId: number, isChecked: boolean) => void;
 };
 
 function CheckItem({
   id,
   description,
   isChecked,
-  setCheckedItems,
+  editCheckList,
 }: CheckItemProps): JSX.Element {
-  const [checked, setCheked] = useState(false);
-
-  useEffect(() => {
-    if (checked) {
-      setCheckedItems(perv => [...perv, id]);
-    } else {
-      setCheckedItems(prev => prev.filter(item => item !== id));
-    }
-  }, [checked, id, setCheckedItems]);
+  const edit = () => {
+    let checked = isChecked ? false : true;
+    editCheckList(id, checked);
+  };
 
   return (
-    <TouchableOpacity onPress={() => setCheked(!checked)} style={styles.item}>
-      {checked || isChecked ? (
+    <TouchableOpacity onPress={() => edit()} style={styles.item}>
+      {isChecked ? (
         <Icon name="check-square" size={20} color="#557cff80" />
       ) : (
         <Icon name="square" size={20} color="lightgray" />
       )}
-      <Text style={[styles.description, checked && styles.chekedItem]}>
+      <Text style={[styles.description, isChecked && styles.chekedItem]}>
         {description}
       </Text>
     </TouchableOpacity>

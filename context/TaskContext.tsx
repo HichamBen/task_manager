@@ -1,4 +1,5 @@
 import React, {ReactNode, useReducer} from 'react';
+import {data} from '../components/tasks';
 
 export type CheklistProps = {
   checkListItemId: number;
@@ -6,7 +7,7 @@ export type CheklistProps = {
   isChecked: boolean;
 };
 
-type TaskProps = {
+export type TaskProps = {
   taskId: string;
   title?: string;
   description?: string;
@@ -31,7 +32,7 @@ type TaskContextProps = {
 };
 
 const initialState = {
-  tasks: [],
+  tasks: data,
 };
 
 function reducer(state: {tasks: TaskProps[]}, action: TaskActionProps) {

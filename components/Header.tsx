@@ -10,6 +10,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const Header = () => {
   const [isFocus, setIsFocus] = useState(false);
+
   return (
     <View style={styles.header}>
       <Image

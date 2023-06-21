@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import notifee from '@notifee/react-native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import TimePickerModal from '../components/TimePickerModal';
 import {CheklistProps, TaskContext} from '../context/TaskContext';
@@ -40,9 +41,8 @@ function CreateTask(): JSX.Element {
   const {state, dispatch} = useContext(TaskContext);
 
   // fill task form to edited;
-  console.log(route.params);
   useEffect(() => {
-    if (route.params.isEdit) {
+    if (route.params?.isEdit) {
       let task = state.tasks.find(item => item.taskId === route.params?.taskId);
       setTitle(task?.title);
       setDescription(task?.description);
@@ -58,7 +58,7 @@ function CreateTask(): JSX.Element {
     }
 
     return () => {
-      navigation.setParams({taskId: undefined, isEdit: undefined});
+      navigation.setParams({taskId: '', isEdit: false});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -84,7 +84,7 @@ function CreateTask(): JSX.Element {
     setCheckList(prev => prev?.filter(item => item.checkListItemId !== itemId));
   };
 
-  const saveATask = () => {
+  const saveATask = async () => {
     if (!title || !description) {
       return Alert.alert(
         'Requirement!',
@@ -114,6 +114,30 @@ function CreateTask(): JSX.Element {
     setDueTime(undefined);
     setCheckListItems([]);
     setCheckList([]);
+
+    // create notification;
+    // Request permissions (required for iOS)
+    await notifee.requestPermission();
+
+    // Create a channel (required for Android)
+    const channelId = await notifee.createChannel({
+      id: 'default',
+      name: 'Default Channel',
+    });
+
+    // Display a notification
+    await notifee.displayNotification({
+      title: 'Notification Title',
+      body: 'Main body content of the notification',
+      android: {
+        channelId,
+        //smallIcon: 'name-of-a-small-icon', // optional, defaults to 'ic_launcher'.
+        // pressAction is needed if you want the notification to open the app when pressed
+        pressAction: {
+          id: 'default',
+        },
+      },
+    });
 
     navigation.jumpTo('Home');
   };
