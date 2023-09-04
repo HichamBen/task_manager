@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import notifee from '@notifee/react-native';
+import notifee, {TimestampTrigger, TriggerType} from '@notifee/react-native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import TimePickerModal from '../components/TimePickerModal';
 import {CheklistProps, TaskContext} from '../context/TaskContext';
@@ -43,7 +43,7 @@ function CreateTask(): JSX.Element {
   // fill task form to edited;
   useEffect(() => {
     if (route.params?.isEdit) {
-      let task = state.tasks.find(item => item.taskId === route.params?.taskId);
+      let task = state.find(item => item.taskId === route.params?.taskId);
       setTitle(task?.title);
       setDescription(task?.description);
       setDueTime(task?.dueTime);
@@ -115,6 +115,26 @@ function CreateTask(): JSX.Element {
     setCheckListItems([]);
     setCheckList([]);
 
+    if (dueTime) {
+      pushNotification(dueTime);
+    }
+
+    navigation.jumpTo('Home');
+  };
+
+  const pushNotification = async (time: string[]) => {
+    const date = new Date();
+
+    date.setHours(parseInt(time[0], 10));
+    date.setMinutes(parseInt(time[1], 10));
+    date.setSeconds(0);
+
+    // Create a time-based trigger
+    const trigger: TimestampTrigger = {
+      type: TriggerType.TIMESTAMP,
+      timestamp: date.getTime(), // fire at 11:10am (10 minutes before meeting)
+    };
+
     // create notification;
     // Request permissions (required for iOS)
     await notifee.requestPermission();
@@ -126,20 +146,26 @@ function CreateTask(): JSX.Element {
     });
 
     // Display a notification
-    await notifee.displayNotification({
-      title: 'Notification Title',
-      body: 'Main body content of the notification',
-      android: {
-        channelId,
-        //smallIcon: 'name-of-a-small-icon', // optional, defaults to 'ic_launcher'.
-        // pressAction is needed if you want the notification to open the app when pressed
-        pressAction: {
-          id: 'default',
+    await notifee.createTriggerNotification(
+      {
+        title: 'Notification Title',
+        body: 'Main body content of the notification',
+        android: {
+          channelId,
+          actions: [
+            {
+              title: 'Reply',
+              icon: '../assets/images/presse-papiers.png',
+              pressAction: {
+                id: 'reply',
+              },
+              input: true,
+            },
+          ],
         },
       },
-    });
-
-    navigation.jumpTo('Home');
+      trigger,
+    );
   };
 
   const editTask = () => {

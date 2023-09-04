@@ -1,11 +1,15 @@
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
-import React, {memo, useContext} from 'react';
+import React, {memo} from 'react';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import CheckItem from './CheckItem';
-import {TaskContext, TaskProps} from '../context/TaskContext';
+import type {TaskProps, TaskActionProps} from '../context/TaskContext';
 import ProgressBar from './ProgressBar';
 import {useNavigation} from '@react-navigation/native';
 import {RootTabScreenProps} from '../navigation/types';
+
+type TaskCardProps = TaskProps & {
+  dispatch: React.Dispatch<TaskActionProps>;
+};
 
 function TaskCard({
   taskId,
@@ -13,10 +17,10 @@ function TaskCard({
   dueTime,
   description,
   checkList,
-}: TaskProps): JSX.Element {
+  dispatch,
+}: TaskCardProps): JSX.Element {
   const navigation =
     useNavigation<RootTabScreenProps<'CreateTask'>['navigation']>();
-  const {dispatch} = useContext(TaskContext);
 
   const deleteATask = (id: string) => {
     dispatch({

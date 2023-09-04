@@ -19,42 +19,34 @@ type TaskContextProviderProps = {
   children: ReactNode;
 };
 
-type TaskActionProps = {
+export type TaskActionProps = {
   type: string;
   payload: TaskProps;
 };
 
 type TaskContextProps = {
-  state: {
-    tasks: TaskProps[];
-  };
+  state: TaskProps[];
   dispatch: React.Dispatch<TaskActionProps>;
 };
 
-const initialState = {
-  tasks: data,
-};
+const initialState = data;
 
-function reducer(state: {tasks: TaskProps[]}, action: TaskActionProps) {
+function reducer(state: TaskProps[], action: TaskActionProps) {
   switch (action.type) {
     case 'CREATE_TASK':
-      return {tasks: [...state.tasks, action.payload]};
+      return [...state, action.payload];
 
     case 'EDIT_TASK':
-      let tasks = state.tasks.map(item => {
+      let tasks = state.map(item => {
         if (item.taskId === action.payload.taskId) {
           return {...item, ...action.payload};
         }
         return item;
       });
 
-      return {tasks};
+      return tasks;
     case 'DELETE_TASK':
-      return {
-        tasks: state.tasks.filter(
-          item => item.taskId !== action.payload.taskId,
-        ),
-      };
+      return state.filter(item => item.taskId !== action.payload.taskId);
     default:
       return state;
   }

@@ -9,13 +9,13 @@ import {RootTabScreenProps} from '../navigation/types';
 
 function Home(): JSX.Element {
   const navigation = useNavigation<RootTabScreenProps<'Home'>['navigation']>();
-  const {state} = useContext(TaskContext);
+  const {state, dispatch} = useContext(TaskContext);
 
   return (
     <SafeAreaView>
       <Header />
       <Text style={styles.title}>Filter by: All</Text>
-      {state.tasks.length === 0 ? (
+      {state.length === 0 ? (
         <TouchableOpacity
           onPress={() => navigation.jumpTo('CreateTask')}
           style={styles.emptyList}>
@@ -25,7 +25,7 @@ function Home(): JSX.Element {
         <FlatList
           showsVerticalScrollIndicator={false}
           style={styles.taskList}
-          data={state.tasks}
+          data={state}
           keyExtractor={(item, index) => item.taskId.toString() + index}
           renderItem={({item}) => (
             <TaskCard
@@ -34,6 +34,7 @@ function Home(): JSX.Element {
               description={item.description}
               checkList={item.checkList}
               dueTime={item.dueTime}
+              dispatch={dispatch}
             />
           )}
         />
