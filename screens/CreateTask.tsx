@@ -80,7 +80,7 @@ function CreateTask(): JSX.Element {
   };
 
   const removeCheckListItem = (itemId: number) => {
-    setCheckListItems(prev => prev?.filter((item, id) => id + 1 !== itemId));
+    setCheckListItems(prev => prev?.filter((__arg, id) => id !== itemId));
     setCheckList(prev => prev?.filter(item => item.checkListItemId !== itemId));
   };
 
@@ -148,24 +148,22 @@ function CreateTask(): JSX.Element {
     // Display a notification
     await notifee.createTriggerNotification(
       {
-        title: 'Notification Title',
-        body: 'Main body content of the notification',
+        title: title,
+        body:
+          description && description.length >= 50
+            ? description?.slice(0, 50) + '...'
+            : description,
         android: {
           channelId,
-          actions: [
-            {
-              title: 'Reply',
-              icon: '../assets/images/presse-papiers.png',
-              pressAction: {
-                id: 'reply',
-              },
-              input: true,
-            },
-          ],
+          pressAction: {
+            id: 'default',
+          },
         },
       },
       trigger,
     );
+
+    navigation.jumpTo('Home');
   };
 
   const editTask = () => {
@@ -186,6 +184,10 @@ function CreateTask(): JSX.Element {
     setDueTime(undefined);
     setCheckListItems([]);
     setCheckList([]);
+
+    if (dueTime) {
+      pushNotification(dueTime);
+    }
 
     navigation.jumpTo('Home');
   };
@@ -233,7 +235,7 @@ function CreateTask(): JSX.Element {
         {checkListItems?.map((Item, id) => (
           <Item
             key={id}
-            checkItemId={id + 1}
+            checkItemId={id}
             removeItem={removeCheckListItem}
             setCheckList={setCheckList}
             checkList={checkList}

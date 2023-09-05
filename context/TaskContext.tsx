@@ -1,5 +1,5 @@
 import React, {ReactNode, useReducer} from 'react';
-import {data} from '../components/tasks';
+// import {data} from '../components/tasks';
 
 export type CheklistProps = {
   checkListItemId: number;
@@ -29,7 +29,7 @@ type TaskContextProps = {
   dispatch: React.Dispatch<TaskActionProps>;
 };
 
-const initialState = data;
+const initialState: TaskProps[] | [] = [];
 
 function reducer(state: TaskProps[], action: TaskActionProps) {
   switch (action.type) {
@@ -47,6 +47,7 @@ function reducer(state: TaskProps[], action: TaskActionProps) {
       return tasks;
     case 'DELETE_TASK':
       return state.filter(item => item.taskId !== action.payload.taskId);
+
     default:
       return state;
   }
