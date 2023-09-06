@@ -41,7 +41,7 @@ function ProgressBar({checkList}: ProgressBarProps): JSX.Element {
 
 const styles = StyleSheet.create({
   progress: {
-    backgroundColor: 'lightgreen',
+    backgroundColor: '#557cff',
     height: 10,
     position: 'absolute',
     bottom: 0,

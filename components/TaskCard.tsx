@@ -1,5 +1,12 @@
-import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
-import React, {memo} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  Dimensions,
+} from 'react-native';
+import React, {memo, useEffect, useState} from 'react';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import CheckItem from './CheckItem';
 import type {TaskProps, TaskActionProps} from '../context/TaskContext';
@@ -9,7 +16,10 @@ import {RootTabScreenProps} from '../navigation/types';
 
 type TaskCardProps = TaskProps & {
   dispatch: React.Dispatch<TaskActionProps>;
+  isInArchive?: boolean;
 };
+
+const {height} = Dimensions.get('window');
 
 function TaskCard({
   taskId,
@@ -18,9 +28,36 @@ function TaskCard({
   description,
   checkList,
   dispatch,
+  isOver,
+  isInArchive,
 }: TaskCardProps): JSX.Element {
   const navigation =
     useNavigation<RootTabScreenProps<'CreateTask'>['navigation']>();
+
+  const [disabled, setDisabled] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    if (checkList) {
+      let isUncompleted = checkList.findIndex(item => !item.isChecked);
+      if (isUncompleted > -1) {
+        setDisabled(true);
+      } else {
+        setDisabled(false);
+      }
+    }
+  }, [checkList]);
+
+  const completeTask = (id: string) => {
+    dispatch({
+      type: 'EDIT_TASK',
+      payload: {
+        taskId: id,
+        isCompleted: true,
+      },
+    });
+    setShowModal(false);
+  };
 
   const deleteATask = (id: string) => {
     dispatch({
@@ -65,6 +102,7 @@ function TaskCard({
             description={item.content}
             isChecked={item.isChecked}
             editCheckList={editCheckList}
+            isInArchive={Boolean(isInArchive)}
           />
         ))}
 
@@ -83,10 +121,16 @@ function TaskCard({
       </View>
 
       {/* Due date badge */}
-      {dueTime && <Text style={styles.duedate}>Due Date</Text>}
+      {dueTime && (
+        <Text style={[styles.duedate, isOver && styles.duedateOver]}>
+          {isOver ? 'Over' : 'Due Date'}
+        </Text>
+      )}
 
       {/* progress bar */}
-      {checkList && <ProgressBar key={taskId} checkList={checkList} />}
+      {checkList && !isInArchive && (
+        <ProgressBar key={taskId} checkList={checkList} />
+      )}
 
       {/* creation date */}
       <Text style={styles.creationDate}>
@@ -96,6 +140,55 @@ function TaskCard({
           day: '2-digit',
         })}
       </Text>
+
+      {!isInArchive && (
+        <TouchableOpacity
+          onPress={() => setShowModal(true)}
+          disabled={disabled}
+          style={[styles.completedBtn, disabled && styles.completedBtnDis]}>
+          <Text style={styles.textCompBtn}>Completed</Text>
+        </TouchableOpacity>
+      )}
+
+      <Modal animationType="fade" visible={showModal} transparent={true}>
+        <View style={styles.modal}>
+          <View style={styles.modalChild}>
+            <Icon
+              style={styles.successIcon}
+              name="check"
+              size={50}
+              color="green"
+            />
+
+            <Text style={styles.successTitle}>Success!</Text>
+            <Text style={styles.successDesc}>
+              You finished the task {String.fromCodePoint(0x1f44f)}
+            </Text>
+
+            <View style={styles.actionBtn}>
+              <Icon.Button
+                onPress={() => completeTask(taskId)}
+                backgroundColor="#557cff"
+                name="archive"
+                size={20}
+                color="white">
+                Archive
+              </Icon.Button>
+              <Icon.Button
+                onPress={() => {
+                  deleteATask(taskId);
+                  setShowModal(false);
+                }}
+                backgroundColor="#ff7441"
+                name="trash"
+                size={20}
+                color="white">
+                Delete
+              </Icon.Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -144,12 +237,74 @@ const styles = StyleSheet.create({
     paddingHorizontal: 1,
     borderRadius: 2,
   },
-
+  duedateOver: {
+    backgroundColor: 'red',
+    paddingHorizontal: 2,
+  },
   creationDate: {
     fontSize: 12,
     position: 'absolute',
     bottom: -16,
     right: 10,
+  },
+  completedBtn: {
+    backgroundColor: '#557cff',
+    marginTop: 10,
+    width: 100,
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    borderRadius: 10,
+    elevation: 5,
+  },
+  completedBtnDis: {
+    backgroundColor: 'lightgray',
+  },
+  textCompBtn: {
+    color: 'white',
+    paddingVertical: 10,
+  },
+  modal: {
+    backgroundColor: '#557cff50',
+    width: '100%',
+    height: '100%',
+  },
+  modalChild: {
+    padding: 10,
+    height: 210,
+    backgroundColor: 'white',
+    width: '80%',
+    alignSelf: 'center',
+    alignItems: 'center',
+    marginTop: height / 2 - 210 / 2,
+    borderRadius: 10,
+    position: 'relative',
+  },
+  successIcon: {
+    backgroundColor: 'lightgreen',
+    padding: 20,
+    borderRadius: 50,
+    position: 'absolute',
+    top: -50,
+  },
+  successTitle: {
+    marginTop: 30,
+    fontFamily: 'Montserrat-VariableFont_wght',
+    fontSize: 32,
+    fontWeight: '700',
+    color: 'lightgreen',
+  },
+  successDesc: {
+    marginTop: 10,
+    fontFamily: 'Montserrat-VariableFont_wght',
+    fontSize: 18,
+    color: 'black',
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignSelf: 'flex-end',
+    justifyContent: 'space-between',
+    width: '70%',
+    marginTop: 35,
   },
 });
 

@@ -33,6 +33,17 @@ const optionsScreen = <T extends keyof RootTabParamList>({
   tabBarActiveTintColor: '#557cff',
 });
 
+// 0: "DISMISSED"
+// 1: "PRESS"
+// 2: "ACTION_PRESS"
+// 3: "DELIVERED"
+// 4: "APP_BLOCKED"
+// 5: "CHANNEL_BLOCKED"
+// 6: "CHANNEL_GROUP_BLOCKED"
+// 7: "TRIGGER_NOTIFICATION_CREATED"
+// 8 : "FG_ALREADY_EXIST"
+// -1 : "UNKNOWN"
+
 function App(): JSX.Element {
   useLayoutEffect(() => {
     SplashScreen.hide();

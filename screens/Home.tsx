@@ -1,4 +1,5 @@
-import React, {useContext} from 'react';
+import React, {useContext, useEffect} from 'react';
+import notifee, {EventType} from '@notifee/react-native';
 import {FlatList, StyleSheet, Text, TouchableOpacity} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Header from '../components/Header';
@@ -10,6 +11,39 @@ import {RootTabScreenProps} from '../navigation/types';
 function Home(): JSX.Element {
   const navigation = useNavigation<RootTabScreenProps<'Home'>['navigation']>();
   const {state, dispatch} = useContext(TaskContext);
+
+  const overDate = (taskId: string) => {
+    console.log('the task id in overDate function', taskId);
+    dispatch({
+      type: 'OVER_DUEDATE',
+      payload: {
+        taskId,
+        isOver: true,
+      },
+    });
+  };
+
+  useEffect(() => {
+    return notifee.onForegroundEvent(({type: typeEvent, detail}) => {
+      const {notification, pressAction} = detail;
+
+      let taskID = notification?.data?.taskId;
+
+      switch (typeEvent) {
+        case EventType.DISMISSED:
+        case EventType.ACTION_PRESS:
+          overDate(taskID as string);
+          if (pressAction?.id === 'default') {
+            navigation.navigate('CreateTask', {
+              taskId: taskID as string,
+              isEdit: true,
+            });
+          }
+          break;
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <SafeAreaView>
@@ -25,7 +59,7 @@ function Home(): JSX.Element {
         <FlatList
           showsVerticalScrollIndicator={false}
           style={styles.taskList}
-          data={state}
+          data={state.filter(item => !item.isCompleted)}
           keyExtractor={(item, index) => item.taskId.toString() + index}
           renderItem={({item}) => (
             <TaskCard
@@ -35,6 +69,7 @@ function Home(): JSX.Element {
               checkList={item.checkList}
               dueTime={item.dueTime}
               dispatch={dispatch}
+              isOver={item.isOver}
             />
           )}
         />
@@ -43,7 +78,7 @@ function Home(): JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   navBtn: {
     width: 100,
     marginHorizontal: 20,

@@ -7,6 +7,7 @@ import {
   TextInput,
   Dimensions,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import React, {useEffect, useRef, useState} from 'react';
 import Icon from 'react-native-vector-icons/FontAwesome5';
@@ -34,11 +35,27 @@ function TimePickerModal({
 
   useEffect(() => {
     if (dueTime) {
+      let date = new Date();
+      let hrs = Number(dueTime[0]);
+      let min = Number(dueTime[1]);
+      if (
+        date.getHours() > hrs ||
+        (hrs === date.getHours() && date.getMinutes() >= min)
+      ) {
+        Alert.alert(
+          'Date Over!',
+          'The Due Date is over add a future new duedate',
+          [
+            {
+              text: 'OK',
+              style: 'cancel',
+            },
+          ],
+          {cancelable: true},
+        );
+      }
       setHours(dueTime[0]);
       setMinutes(dueTime[1]);
-    } else {
-      setHours('');
-      setMinutes('');
     }
   }, [dueTime]);
 

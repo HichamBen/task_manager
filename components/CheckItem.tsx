@@ -7,6 +7,7 @@ type CheckItemProps = {
   description: string;
   isChecked: boolean;
   editCheckList: (itemId: number, isChecked: boolean) => void;
+  isInArchive: boolean;
 };
 
 function CheckItem({
@@ -14,6 +15,7 @@ function CheckItem({
   description,
   isChecked,
   editCheckList,
+  isInArchive,
 }: CheckItemProps): JSX.Element {
   const edit = () => {
     let checked = isChecked ? false : true;
@@ -21,7 +23,10 @@ function CheckItem({
   };
 
   return (
-    <TouchableOpacity onPress={() => edit()} style={styles.item}>
+    <TouchableOpacity
+      disabled={isInArchive}
+      onPress={() => edit()}
+      style={styles.item}>
       {isChecked ? (
         <Icon name="check-square" size={20} color="#557cff80" />
       ) : (

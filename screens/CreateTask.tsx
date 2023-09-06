@@ -116,13 +116,13 @@ function CreateTask(): JSX.Element {
     setCheckList([]);
 
     if (dueTime) {
-      pushNotification(dueTime);
+      pushNotification(dueTime, title.slice(0, 2) + Date.now());
     }
 
     navigation.jumpTo('Home');
   };
 
-  const pushNotification = async (time: string[]) => {
+  const pushNotification = async (time: string[], taskId: string) => {
     const date = new Date();
 
     date.setHours(parseInt(time[0], 10));
@@ -141,8 +141,11 @@ function CreateTask(): JSX.Element {
 
     // Create a channel (required for Android)
     const channelId = await notifee.createChannel({
-      id: 'default',
-      name: 'Default Channel',
+      id: 'alarm',
+      name: 'Firing alarms & timers',
+      lights: false,
+      vibration: false,
+      sound: 'default',
     });
 
     // Display a notification
@@ -153,11 +156,24 @@ function CreateTask(): JSX.Element {
           description && description.length >= 50
             ? description?.slice(0, 50) + '...'
             : description,
+
+        data: {taskId},
         android: {
           channelId,
-          pressAction: {
-            id: 'default',
-          },
+          actions: [
+            {
+              title: '<p style="color: #557cff;">Open</p>',
+              pressAction: {
+                id: 'default',
+              },
+            },
+            {
+              title: '<p style="color: red;">Dismiss</p>',
+              pressAction: {
+                id: 'dismiss',
+              },
+            },
+          ],
         },
       },
       trigger,
@@ -168,6 +184,20 @@ function CreateTask(): JSX.Element {
 
   const editTask = () => {
     if (route.params?.taskId) {
+      let isOver = false;
+      if (dueTime) {
+        let date = new Date();
+        let hrs = Number(dueTime[0]);
+        let min = Number(dueTime[1]);
+        if (
+          date.getHours() > hrs ||
+          (hrs === date.getHours() && date.getMinutes() >= min)
+        ) {
+          isOver = true;
+        } else {
+          pushNotification(dueTime, route.params?.taskId);
+        }
+      }
       dispatch({
         type: 'EDIT_TASK',
         payload: {
@@ -176,6 +206,8 @@ function CreateTask(): JSX.Element {
           description,
           dueTime,
           checkList,
+          isOver,
+          isCompleted: false,
         },
       });
     }
@@ -184,10 +216,6 @@ function CreateTask(): JSX.Element {
     setDueTime(undefined);
     setCheckListItems([]);
     setCheckList([]);
-
-    if (dueTime) {
-      pushNotification(dueTime);
-    }
 
     navigation.jumpTo('Home');
   };

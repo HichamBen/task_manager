@@ -13,6 +13,8 @@ export type TaskProps = {
   description?: string;
   dueTime?: string[];
   checkList?: CheklistProps[];
+  isOver?: boolean;
+  isCompleted?: boolean;
 };
 
 type TaskContextProviderProps = {
@@ -43,8 +45,16 @@ function reducer(state: TaskProps[], action: TaskActionProps) {
         }
         return item;
       });
-
       return tasks;
+
+    case 'OVER_DUEDATE':
+      return state.map(item => {
+        if (item.taskId === action.payload.taskId) {
+          return {...item, ...action.payload};
+        }
+        return item;
+      });
+
     case 'DELETE_TASK':
       return state.filter(item => item.taskId !== action.payload.taskId);
 
