@@ -1,3 +1,4 @@
+import notifee from '@notifee/react-native';
 import {
   View,
   Text,
@@ -13,6 +14,12 @@ import type {TaskProps, TaskActionProps} from '../context/TaskContext';
 import ProgressBar from './ProgressBar';
 import {useNavigation} from '@react-navigation/native';
 import {RootTabScreenProps} from '../navigation/types';
+import {
+  completedTask,
+  deleteTask,
+  getDBConnection,
+  updateCheckList,
+} from '../db/db-service';
 
 type TaskCardProps = TaskProps & {
   dispatch: React.Dispatch<TaskActionProps>;
@@ -48,7 +55,16 @@ function TaskCard({
     }
   }, [checkList]);
 
-  const completeTask = (id: string) => {
+  const removeNotification = async () => {
+    let allNotification = await notifee.getTriggerNotifications();
+    allNotification.forEach(async ({notification}) => {
+      if (notification.data?.taskId === taskId) {
+        await notifee.cancelTriggerNotification(notification.id as string);
+      }
+    });
+  };
+
+  const completeTask = async (id: string) => {
     dispatch({
       type: 'EDIT_TASK',
       payload: {
@@ -57,9 +73,13 @@ function TaskCard({
       },
     });
     setShowModal(false);
+    removeNotification();
+    // Update the Task in db to be completed
+    let database = getDBConnection();
+    completedTask(database, id);
   };
 
-  const deleteATask = (id: string) => {
+  const deleteATask = async (id: string) => {
     dispatch({
       type: 'DELETE_TASK',
       payload: {
@@ -68,9 +88,14 @@ function TaskCard({
         taskId: id,
       },
     });
+
+    removeNotification();
+    // Delete the Task from db
+    let database = getDBConnection();
+    deleteTask(database, id);
   };
 
-  const editCheckList = (itemId: number, isChecked: boolean) => {
+  const editCheckList = async (itemId: string, isChecked: boolean) => {
     dispatch({
       type: 'EDIT_TASK',
       payload: {
@@ -82,6 +107,13 @@ function TaskCard({
           return item;
         }),
       },
+    });
+
+    // Update the ChekList in db
+    let database = getDBConnection();
+    updateCheckList(database, {
+      itemId,
+      isChecked,
     });
   };
 

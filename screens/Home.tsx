@@ -7,13 +7,13 @@ import TaskCard from '../components/TaskCard';
 import {TaskContext} from '../context/TaskContext';
 import {useNavigation} from '@react-navigation/native';
 import {RootTabScreenProps} from '../navigation/types';
+import {getDBConnection, taskOver} from '../db/db-service';
 
 function Home(): JSX.Element {
   const navigation = useNavigation<RootTabScreenProps<'Home'>['navigation']>();
   const {state, dispatch} = useContext(TaskContext);
 
   const overDate = (taskId: string) => {
-    console.log('the task id in overDate function', taskId);
     dispatch({
       type: 'OVER_DUEDATE',
       payload: {
@@ -21,6 +21,9 @@ function Home(): JSX.Element {
         isOver: true,
       },
     });
+    // Update the task to be over in database
+    let database = getDBConnection();
+    taskOver(database, taskId);
   };
 
   useEffect(() => {

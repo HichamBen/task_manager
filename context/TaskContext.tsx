@@ -1,8 +1,8 @@
-import React, {ReactNode, useReducer} from 'react';
-// import {data} from '../components/tasks';
+import React, {ReactNode, useEffect, useReducer} from 'react';
+import {getTasks} from '../db/db-service';
 
 export type CheklistProps = {
-  checkListItemId: number;
+  checkListItemId: string;
   content: string;
   isChecked: boolean;
 };
@@ -21,10 +21,17 @@ type TaskContextProviderProps = {
   children: ReactNode;
 };
 
-export type TaskActionProps = {
-  type: string;
-  payload: TaskProps;
-};
+export type TaskActionProps =
+  | {
+      type:
+        | 'CREATE_TASK'
+        | 'CREATE_TASK'
+        | 'EDIT_TASK'
+        | 'OVER_DUEDATE'
+        | 'DELETE_TASK';
+      payload: TaskProps;
+    }
+  | {type: 'DB_TASKS'; initialState: TaskProps[]};
 
 type TaskContextProps = {
   state: TaskProps[];
@@ -35,6 +42,9 @@ const initialState: TaskProps[] | [] = [];
 
 function reducer(state: TaskProps[], action: TaskActionProps) {
   switch (action.type) {
+    case 'DB_TASKS':
+      return action.initialState ? action.initialState : state;
+
     case 'CREATE_TASK':
       return [...state, action.payload];
 
@@ -69,6 +79,16 @@ export const TaskContext = React.createContext({} as TaskContextProps);
 // task context provider
 export const TaskContextProvider = ({children}: TaskContextProviderProps) => {
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  useEffect(() => {
+    // GET All tasks from db;
+    getTasks().then(result => {
+      dispatch({
+        type: 'DB_TASKS',
+        initialState: result,
+      });
+    });
+  }, []);
 
   return (
     <TaskContext.Provider value={{state, dispatch}}>

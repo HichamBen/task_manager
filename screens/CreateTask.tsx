@@ -1,4 +1,10 @@
-import React, {useContext, useEffect, useRef, useState} from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   Alert,
   Image,
@@ -16,9 +22,14 @@ import TimePickerModal from '../components/TimePickerModal';
 import {CheklistProps, TaskContext} from '../context/TaskContext';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {RootTabScreenProps} from '../navigation/types';
-import CheckInputItem, {
-  CheckInputItemProps,
-} from '../components/CheckInputItem';
+import CheckInputItem from '../components/CheckInputItem';
+import {
+  createTask,
+  delteFromCheckList,
+  getDBConnection,
+  insertToCheckList,
+  updateTask,
+} from '../db/db-service';
 
 function CreateTask(): JSX.Element {
   const navigation =
@@ -31,9 +42,6 @@ function CreateTask(): JSX.Element {
   const [titleIsFocused, setTitleIsFocused] = useState(false);
   const [descIsFocused, setDescIsFocused] = useState(false);
   const [checkList, setCheckList] = useState<CheklistProps[]>([]);
-  const [checkListItems, setCheckListItems] = useState<
-    React.FC<CheckInputItemProps>[]
-  >([]);
 
   const scrollView = useRef<ScrollView>({} as ScrollView);
   const [isModalShown, setisModalShown] = useState(false);
@@ -48,11 +56,6 @@ function CreateTask(): JSX.Element {
       setDescription(task?.description);
       setDueTime(task?.dueTime);
       if (task?.checkList) {
-        let list = [];
-        for (let i = 0; i < task.checkList.length; i++) {
-          list.push(CheckInputItem);
-        }
-        setCheckListItems(list);
         setCheckList(task.checkList);
       }
     }
@@ -63,26 +66,64 @@ function CreateTask(): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // remove dueDate
+  useEffect(() => {
+    if (route.params?.isEdit && !dueTime) {
+      notifee.getTriggerNotifications().then(allNotification => {
+        allNotification.forEach(async ({notification}) => {
+          if (notification.data?.taskId === route.params?.taskId) {
+            await notifee.cancelTriggerNotification(notification.id as string);
+          }
+        });
+      });
+    }
+  }, [dueTime, route.params?.isEdit, route.params?.taskId]);
+
   // scroll to the end
   useEffect(() => {
-    if (checkListItems) {
+    if (checkList) {
       scrollView.current.scrollToEnd({animated: true});
     }
-  }, [checkListItems]);
+  }, [checkList]);
 
   const addCheckListItem = () => {
-    setCheckListItems(prev => {
+    let key = 'L' + Date.now();
+    setCheckList(prev => {
       if (prev) {
-        return [...prev, CheckInputItem];
+        return [
+          ...prev,
+          {
+            checkListItemId: key,
+            content: '',
+            isChecked: false,
+          },
+        ];
       }
-      return [CheckInputItem];
+      return [{checkListItemId: key, content: '', isChecked: false}];
     });
+
+    //Update the ChekList in db
+    if (route.params?.isEdit) {
+      let database = getDBConnection();
+      insertToCheckList(database, key, route.params?.taskId);
+    }
   };
 
-  const removeCheckListItem = (itemId: number) => {
-    setCheckListItems(prev => prev?.filter((__arg, id) => id !== itemId));
-    setCheckList(prev => prev?.filter(item => item.checkListItemId !== itemId));
-  };
+  const removeCheckListItem = useCallback(
+    async (itemId: string) => {
+      // setCheckListItems(prev => prev?.filter(item => item.key !== itemId));
+      setCheckList(prev =>
+        prev?.filter(item => item.checkListItemId !== itemId),
+      );
+
+      if (route.params?.isEdit) {
+        // Update the ChekList in db
+        let database = getDBConnection();
+        delteFromCheckList(database, itemId);
+      }
+    },
+    [route.params?.isEdit],
+  );
 
   const saveATask = async () => {
     if (!title || !description) {
@@ -99,20 +140,35 @@ function CreateTask(): JSX.Element {
       );
     }
 
+    let removeCheckListEmptyItem: CheklistProps[] | undefined;
+    if (checkList) {
+      removeCheckListEmptyItem = checkList.filter(item =>
+        Boolean(item.content),
+      );
+    }
+
+    const payload = {
+      taskId: title.slice(0, 2) + Date.now(),
+      title,
+      description,
+      dueTime,
+      checkList: removeCheckListEmptyItem,
+      isOver: false,
+      isCompleted: false,
+    };
+
     dispatch({
       type: 'CREATE_TASK',
-      payload: {
-        taskId: title.slice(0, 2) + Date.now(),
-        title,
-        description,
-        dueTime,
-        checkList,
-      },
+      payload,
     });
+
+    // Insert a task to database
+    let database = getDBConnection();
+    createTask(database, payload);
+
     setTitle('');
     setDescription('');
     setDueTime(undefined);
-    setCheckListItems([]);
     setCheckList([]);
 
     if (dueTime) {
@@ -182,7 +238,10 @@ function CreateTask(): JSX.Element {
     navigation.jumpTo('Home');
   };
 
-  const editTask = () => {
+  const editTask = async () => {
+    // initial db
+    let database = getDBConnection();
+
     if (route.params?.taskId) {
       let isOver = false;
       if (dueTime) {
@@ -195,26 +254,53 @@ function CreateTask(): JSX.Element {
         ) {
           isOver = true;
         } else {
+          /* To do clear the previous notification*/
+          let allNotification = await notifee.getTriggerNotifications();
+
+          allNotification.forEach(async ({notification}) => {
+            if (notification.data?.taskId === route.params?.taskId) {
+              await notifee.cancelTriggerNotification(
+                notification.id as string,
+              );
+            }
+          });
+
           pushNotification(dueTime, route.params?.taskId);
         }
       }
+
+      let removeCheckListEmptyItem: CheklistProps[] | undefined;
+      if (checkList) {
+        removeCheckListEmptyItem = checkList.filter(item => {
+          if (!item.content) {
+            delteFromCheckList(database, item.checkListItemId);
+          }
+          return Boolean(item.content);
+        });
+      }
+
+      let payload = {
+        taskId: route.params.taskId,
+        title,
+        description,
+        dueTime,
+        checkList: removeCheckListEmptyItem,
+        isOver,
+        isCompleted: false,
+      };
+
       dispatch({
         type: 'EDIT_TASK',
-        payload: {
-          taskId: route.params.taskId,
-          title,
-          description,
-          dueTime,
-          checkList,
-          isOver,
-          isCompleted: false,
-        },
+        payload,
       });
+
+      // Update the task in the db
+      updateTask(database, payload);
     }
     setTitle('');
     setDescription('');
     setDueTime(undefined);
-    setCheckListItems([]);
+    // setCheckListItems([]);
     setCheckList([]);
 
     navigation.jumpTo('Home');
@@ -260,10 +346,11 @@ function CreateTask(): JSX.Element {
           onBlur={() => setDescIsFocused(false)}
         />
 
-        {checkListItems?.map((Item, id) => (
-          <Item
-            key={id}
-            checkItemId={id}
+        {checkList?.map((item, id) => (
+          <CheckInputItem
+            key={item.checkListItemId}
+            index={id + 1}
+            checkItemId={item.checkListItemId}
             removeItem={removeCheckListItem}
             setCheckList={setCheckList}
             checkList={checkList}
@@ -281,7 +368,7 @@ function CreateTask(): JSX.Element {
       <View
         style={[
           styles.saveDueBtns,
-          checkListItems.length > 0 && {transform: [{translateY: -30}]},
+          checkList.length > 0 && {transform: [{translateY: -30}]},
         ]}>
         {route.params?.isEdit ? (
           <Pressable

@@ -70,7 +70,11 @@ function TimePickerModal({
       }
     }
 
-    if (text.length === 2 && text[1].match(/[0-9]/)) {
+    if (
+      text.length === 2 &&
+      (text[1].match(/[0-4]/) ||
+        (text[0].match(/[0-1]/) && text[1].match(/[0-9]/)))
+    ) {
       setHours(text);
       return minRef.current?.focus();
     }
@@ -105,11 +109,31 @@ function TimePickerModal({
     if (!isCancle) {
       let hr = hours ? hours : '00';
       let min = minutes ? minutes : '00';
+      let date = new Date();
+      if (
+        date.getHours() > Number(hr) ||
+        (Number(hr) === date.getHours() && date.getMinutes() >= Number(min))
+      ) {
+        Alert.alert(
+          'Date Over!',
+          'The Due Date is over add a future new duedate',
+          [
+            {
+              text: 'OK',
+              style: 'cancel',
+            },
+          ],
+          {cancelable: true},
+        );
+        return;
+      }
+
       setDueTime([
         hr.length > 1 ? hr : `0${hr}`,
         min.length > 1 ? min : `0${min}`,
       ]);
     } else {
+      setDueTime(undefined);
       setHours('');
       setMinutes('');
     }

@@ -1,5 +1,5 @@
 import React, {useLayoutEffect} from 'react';
-import {Keyboard, StatusBar, StyleSheet, Text} from 'react-native';
+import {StatusBar, StyleSheet, Text} from 'react-native';
 import SplashScreen from 'react-native-splash-screen';
 import {NavigationContainer} from '@react-navigation/native';
 import Home from './screens/Home';
@@ -10,6 +10,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {RootTabParamList, RootTabScreenProps} from './navigation/types';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import {TaskContextProvider} from './context/TaskContext';
+import {createTables, getDBConnection} from './db/db-service';
 
 const TabStack = createBottomTabNavigator<RootTabParamList>();
 const optionsScreen = <T extends keyof RootTabParamList>({
@@ -45,12 +46,12 @@ const optionsScreen = <T extends keyof RootTabParamList>({
 // -1 : "UNKNOWN"
 
 function App(): JSX.Element {
+  // const [db, setDb] = useState<SQLiteDatabase | undefined>();
   useLayoutEffect(() => {
     SplashScreen.hide();
-    // unfocused the inputs whend keyboard dismissed
-    Keyboard.addListener('keyboardDidHide', () => {
-      Keyboard.dismiss();
-    });
+
+    let database = getDBConnection();
+    createTables(database);
   }, []);
 
   return (

@@ -1,16 +1,18 @@
 import {View, TextInput, StyleSheet, TouchableOpacity} from 'react-native';
-import React, {useEffect, useRef, useState} from 'react';
+import React, {memo, useEffect, useState} from 'react';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import {CheklistProps} from '../context/TaskContext';
 
-export type CheckInputItemProps = {
-  checkItemId: number;
-  removeItem: (id: number) => void;
+type CheckInputItemProps = {
+  index: number;
+  checkItemId: string;
+  removeItem: (id: string) => void;
   checkList: CheklistProps[];
   setCheckList: React.Dispatch<React.SetStateAction<CheklistProps[]>>;
 };
 
 const CheckInputItem = ({
+  index,
   checkItemId,
   removeItem,
   checkList,
@@ -18,7 +20,6 @@ const CheckInputItem = ({
 }: CheckInputItemProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const [taskTitle, setTaskTitle] = useState('');
-  const firtFill = useRef(false);
 
   useEffect(() => {
     let item = checkList.find(
@@ -26,46 +27,23 @@ const CheckInputItem = ({
     );
     if (item) {
       setTaskTitle(item.content);
-      firtFill.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkItemId]);
 
   useEffect(() => {
     if (isFocused && taskTitle) {
-      firtFill.current = false;
-      setCheckList(prev => {
-        let isExist: boolean = false;
-        let editItem = prev.map(item => {
-          if (item.checkListItemId === checkItemId) {
-            item.content = taskTitle;
-            isExist = true;
+      setCheckList(prev =>
+        prev.map(row => {
+          if (row.checkListItemId === checkItemId) {
+            return {...row, content: taskTitle};
           }
-          return item;
-        });
-
-        let newList = isExist
-          ? editItem
-          : [
-              ...prev,
-              {
-                checkListItemId: checkItemId,
-                content: taskTitle,
-              } as CheklistProps,
-            ];
-
-        return newList;
-      });
+          return row;
+        }),
+      );
     }
-
-    return () => {
-      if (!firtFill.current && !taskTitle) {
-        setCheckList(prev =>
-          prev?.filter(item => item.checkListItemId !== checkItemId),
-        );
-      }
-    };
-  }, [taskTitle, checkItemId, setCheckList, isFocused]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkItemId, isFocused, taskTitle]);
 
   return (
     <View
@@ -81,7 +59,7 @@ const CheckInputItem = ({
         style={styles.iconOne}
       />
       <TextInput
-        placeholder={`Task ${checkItemId}`}
+        placeholder={`Task ${index}`}
         placeholderTextColor="lightgray"
         multiline
         style={styles.input}
@@ -123,4 +101,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CheckInputItem;
+export default memo(CheckInputItem);

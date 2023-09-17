@@ -3,10 +3,10 @@ import React from 'react';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 
 type CheckItemProps = {
-  id: number;
+  id: string;
   description: string;
   isChecked: boolean;
-  editCheckList: (itemId: number, isChecked: boolean) => void;
+  editCheckList: (itemId: string, isChecked: boolean) => void;
   isInArchive: boolean;
 };
 
