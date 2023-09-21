@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   },
   timer: {
     marginVertical: 28,
-    width: 100,
+    // width: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',

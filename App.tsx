@@ -31,6 +31,7 @@ const optionsScreen = <T extends keyof RootTabParamList>({
       <Icon name="sticky-note" color={props.color} size={props.size} solid />
     );
   },
+
   tabBarActiveTintColor: '#557cff',
 });
 
@@ -46,7 +47,6 @@ const optionsScreen = <T extends keyof RootTabParamList>({
 // -1 : "UNKNOWN"
 
 function App(): JSX.Element {
-  // const [db, setDb] = useState<SQLiteDatabase | undefined>();
   useLayoutEffect(() => {
     SplashScreen.hide();
 

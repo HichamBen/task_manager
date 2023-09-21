@@ -18,18 +18,18 @@ import {
 } from 'react-native';
 import notifee, {TimestampTrigger, TriggerType} from '@notifee/react-native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
-import TimePickerModal from '../components/TimePickerModal';
 import {CheklistProps, TaskContext} from '../context/TaskContext';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {RootTabScreenProps} from '../navigation/types';
 import CheckInputItem from '../components/CheckInputItem';
 import {
   createTask,
-  delteFromCheckList,
+  deleteFromCheckList,
   getDBConnection,
   insertToCheckList,
   updateTask,
 } from '../db/db-service';
+import DatePicker from 'react-native-date-picker';
 
 function CreateTask(): JSX.Element {
   const navigation =
@@ -38,10 +38,10 @@ function CreateTask(): JSX.Element {
 
   const [title, setTitle] = useState<string>();
   const [description, setDescription] = useState<string>();
-  const [dueTime, setDueTime] = useState<string[]>();
   const [titleIsFocused, setTitleIsFocused] = useState(false);
   const [descIsFocused, setDescIsFocused] = useState(false);
   const [checkList, setCheckList] = useState<CheklistProps[]>([]);
+  const [dueTime, setDueTime] = useState<number | undefined>();
 
   const scrollView = useRef<ScrollView>({} as ScrollView);
   const [isModalShown, setisModalShown] = useState(false);
@@ -65,19 +65,6 @@ function CreateTask(): JSX.Element {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // remove dueDate
-  useEffect(() => {
-    if (route.params?.isEdit && !dueTime) {
-      notifee.getTriggerNotifications().then(allNotification => {
-        allNotification.forEach(async ({notification}) => {
-          if (notification.data?.taskId === route.params?.taskId) {
-            await notifee.cancelTriggerNotification(notification.id as string);
-          }
-        });
-      });
-    }
-  }, [dueTime, route.params?.isEdit, route.params?.taskId]);
 
   // scroll to the end
   useEffect(() => {
@@ -119,7 +106,7 @@ function CreateTask(): JSX.Element {
       if (route.params?.isEdit) {
         // Update the ChekList in db
         let database = getDBConnection();
-        delteFromCheckList(database, itemId);
+        deleteFromCheckList(database, itemId);
       }
     },
     [route.params?.isEdit],
@@ -178,17 +165,11 @@ function CreateTask(): JSX.Element {
     navigation.jumpTo('Home');
   };
 
-  const pushNotification = async (time: string[], taskId: string) => {
-    const date = new Date();
-
-    date.setHours(parseInt(time[0], 10));
-    date.setMinutes(parseInt(time[1], 10));
-    date.setSeconds(0);
-
+  const pushNotification = async (time: number, taskId: string) => {
     // Create a time-based trigger
     const trigger: TimestampTrigger = {
       type: TriggerType.TIMESTAMP,
-      timestamp: date.getTime(), // fire at 11:10am (10 minutes before meeting)
+      timestamp: time, // fire at 11:10am (10 minutes before meeting)
     };
 
     // create notification;
@@ -245,13 +226,8 @@ function CreateTask(): JSX.Element {
     if (route.params?.taskId) {
       let isOver = false;
       if (dueTime) {
-        let date = new Date();
-        let hrs = Number(dueTime[0]);
-        let min = Number(dueTime[1]);
-        if (
-          date.getHours() > hrs ||
-          (hrs === date.getHours() && date.getMinutes() >= min)
-        ) {
+        let date = new Date().getTime();
+        if (dueTime < date) {
           isOver = true;
         } else {
           /* To do clear the previous notification*/
@@ -267,13 +243,24 @@ function CreateTask(): JSX.Element {
 
           pushNotification(dueTime, route.params?.taskId);
         }
+      } else {
+        notifee.getTriggerNotifications().then(allNotification => {
+          allNotification.forEach(async ({notification}) => {
+            console.log(notification.data?.taskId, route.params?.taskId);
+            if (notification.data?.taskId === route.params?.taskId) {
+              await notifee.cancelTriggerNotification(
+                notification.id as string,
+              );
+            }
+          });
+        });
       }
 
       let removeCheckListEmptyItem: CheklistProps[] | undefined;
       if (checkList) {
         removeCheckListEmptyItem = checkList.filter(item => {
           if (!item.content) {
-            delteFromCheckList(database, item.checkListItemId);
+            deleteFromCheckList(database, item.checkListItemId);
           }
           return Boolean(item.content);
         });
@@ -300,7 +287,6 @@ function CreateTask(): JSX.Element {
     setTitle('');
     setDescription('');
     setDueTime(undefined);
-    // setCheckListItems([]);
     setCheckList([]);
 
     navigation.jumpTo('Home');
@@ -388,18 +374,26 @@ function CreateTask(): JSX.Element {
           style={({pressed}) => [
             styles.btns,
             pressed && styles.activeBtn,
-            dueTime && styles.activeDueDate,
+            Boolean(dueTime) && styles.activeDueDate,
           ]}>
           <Icon name="clock" size={30} color="white" />
         </Pressable>
       </View>
 
       {/* Timer picker modal */}
-      <TimePickerModal
-        isModalShown={isModalShown}
-        setIsModalShown={setisModalShown}
-        setDueTime={setDueTime}
-        dueTime={dueTime}
+      <DatePicker
+        modal
+        open={isModalShown}
+        date={dueTime ? new Date(dueTime) : new Date()}
+        onConfirm={date => {
+          date.setSeconds(0);
+          setDueTime(date.getTime());
+          setisModalShown(false);
+        }}
+        onCancel={() => {
+          setDueTime(undefined);
+          setisModalShown(false);
+        }}
       />
     </ScrollView>
   );

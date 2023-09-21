@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Image,
@@ -7,36 +7,53 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import Filter from './Filter';
+import {useNavigation} from '@react-navigation/native';
+import {RootTabScreenProps} from '../navigation/types';
 
 const Header = () => {
+  const navigation = useNavigation<RootTabScreenProps<'Home'>['navigation']>();
+
   const [isFocus, setIsFocus] = useState(false);
-
+  const [showFilter, setShowFilter] = useState(false);
+  useEffect(() => {
+    navigation.setOptions({
+      tabBarStyle: {
+        display: showFilter ? 'none' : 'flex',
+      },
+    });
+  }, [navigation, showFilter]);
   return (
-    <View style={styles.header}>
-      <Image
-        source={require('../assets/images/presse-papiers.png')}
-        style={styles.brand}
-      />
+    <>
+      <View style={styles.header}>
+        <Image
+          source={require('../assets/images/presse-papiers.png')}
+          style={styles.brand}
+        />
 
-      <View style={styles.headerLeftSide}>
-        <View style={[styles.searchContainer, isFocus && styles.inputFocus]}>
-          <TouchableOpacity>
-            <Icon name="search" size={25} color="white" />
+        <View style={styles.headerLeftSide}>
+          <View style={[styles.searchContainer, isFocus && styles.inputFocus]}>
+            <TouchableOpacity>
+              <Icon name="search" size={25} color="white" />
+            </TouchableOpacity>
+            <TextInput
+              style={styles.serachInput}
+              placeholder="Search..."
+              placeholderTextColor="white"
+              onFocus={() => setIsFocus(true)}
+              onBlur={() => setIsFocus(false)}
+            />
+          </View>
+
+          <TouchableOpacity
+            onPress={() => setShowFilter(true)}
+            style={styles.filterIcon}>
+            <Icon name="tune" size={30} color="white" />
           </TouchableOpacity>
-          <TextInput
-            style={styles.serachInput}
-            placeholder="Search..."
-            placeholderTextColor="white"
-            onFocus={() => setIsFocus(true)}
-            onBlur={() => setIsFocus(false)}
-          />
         </View>
-
-        <TouchableOpacity style={styles.filterIcon}>
-          <Icon name="tune" size={30} color="white" />
-        </TouchableOpacity>
       </View>
-    </View>
+      {showFilter && <Filter setShowFilter={setShowFilter} />}
+    </>
   );
 };
 

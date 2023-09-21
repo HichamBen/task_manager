@@ -70,6 +70,10 @@ function TaskCard({
       payload: {
         taskId: id,
         isCompleted: true,
+        checkList: checkList?.map(item => {
+          item.isChecked = false;
+          return item;
+        }),
       },
     });
     setShowModal(false);

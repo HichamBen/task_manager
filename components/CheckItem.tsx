@@ -30,7 +30,7 @@ function CheckItem({
       {isChecked ? (
         <Icon name="check-square" size={20} color="#557cff80" />
       ) : (
-        <Icon name="square" size={20} color="lightgray" />
+        <Icon name="square" size={20} color="lightgray" solid={isInArchive} />
       )}
       <Text style={[styles.description, isChecked && styles.chekedItem]}>
         {description}

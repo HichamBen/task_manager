@@ -11,7 +11,7 @@ export const createTables = async (db: WebsqlDatabase) => {
       taskId TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       description TEXT NOT NULL,
-      dueTime TEXT,
+      dueTime INTERGER,
       isOver INTERGER DEFAULT 0 NOT NULL,
       isCompleted INTERGER DEFAULT 0 NOT NULL
    ) WITHOUT ROWID`;
@@ -33,12 +33,7 @@ export const createTables = async (db: WebsqlDatabase) => {
 export const createTask = async (db: WebsqlDatabase, taskData: TaskProps) => {
   let {taskId, title, description, dueTime, checkList} = taskData;
 
-  let params = [
-    taskId,
-    title,
-    description,
-    dueTime ? dueTime.join('-') : 'NULL',
-  ];
+  let params = [taskId, title, description, dueTime || 'NULL'];
   // create table if not exists
   const queryTask = `INSERT INTO tasks (taskId,title, description, dueTime) 
    VALUES (?, ?, ?, ?)`;
@@ -150,15 +145,14 @@ export const updateTask = (db: WebsqlDatabase, payload: TaskProps) => {
        SET title = ? ,
            description = ? ,
            dueTime = ? ,
-           title = ? ,
            isOver = ? ,
            isCompleted = ?
        WHERE taskId = ?
       `,
       [
-        payload.title ? payload.title : 'Null',
-        payload.description ? payload.description : 'Null',
-        payload.dueTime ? payload.dueTime.join('-') : 'Null',
+        payload.title,
+        payload.description,
+        payload.dueTime || 'NULL',
         payload.isOver ? '1' : '0',
         payload.isCompleted ? '1' : '0',
         payload.taskId,
@@ -192,6 +186,7 @@ export const taskOver = (db: WebsqlDatabase, taskId: string) => {
     );
   });
 };
+
 export const updateCheckList = (
   db: WebsqlDatabase,
   payload: {itemId: string; isChecked: boolean},
@@ -202,13 +197,6 @@ export const updateCheckList = (
        SET isChecked = ?
        WHERE checkListItemId=?`,
       [payload.isChecked ? '1' : '0', payload.itemId],
-      (__, result) => {
-        console.log('Update checkList table', result);
-      },
-      (__, err) => {
-        console.log('Update error in checkList table', err);
-        return false;
-      },
     );
   });
 };
@@ -234,7 +222,7 @@ export const insertToCheckList = (
   });
 };
 
-export const delteFromCheckList = (db: WebsqlDatabase, itemId: string) => {
+export const deleteFromCheckList = (db: WebsqlDatabase, itemId: string) => {
   db.transaction(txn => {
     txn.executeSql(
       'DELETE FROM checkList WHERE checkListItemId=?',
@@ -277,7 +265,7 @@ export const getTasksOnly = async (
             const {dueTime, isOver, isCompleted} = result.rows.item(i);
             tasks.push({
               ...result.rows.item(i),
-              dueTime: dueTime && dueTime.split('-'),
+              dueTime: dueTime === 'NULL' ? undefined : dueTime,
               isOver: isOver ? true : false,
               isCompleted: isCompleted ? true : false,
             });
@@ -324,6 +312,22 @@ export const getChecklistOnly = async (
 };
 
 export const completedTask = (db: WebsqlDatabase, taskId: string) => {
+  db.transaction(txn => {
+    txn.executeSql(
+      `UPDATE checkList 
+         SET isChecked = 0
+         WHERE taskId = ?`,
+      [taskId],
+      (__, result) => {
+        console.log('Update checkList table', result);
+      },
+      (__, err) => {
+        console.log('Update error in checkList table', err);
+        return false;
+      },
+    );
+  });
+
   db.transaction(txn => {
     txn.executeSql(
       `UPDATE tasks 

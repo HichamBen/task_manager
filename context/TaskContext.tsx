@@ -1,4 +1,4 @@
-import React, {ReactNode, useEffect, useReducer} from 'react';
+import React, {ReactNode, useLayoutEffect, useReducer} from 'react';
 import {getTasks} from '../db/db-service';
 
 export type CheklistProps = {
@@ -11,7 +11,7 @@ export type TaskProps = {
   taskId: string;
   title?: string;
   description?: string;
-  dueTime?: string[];
+  dueTime?: number;
   checkList?: CheklistProps[];
   isOver?: boolean;
   isCompleted?: boolean;
@@ -36,6 +36,8 @@ export type TaskActionProps =
 type TaskContextProps = {
   state: TaskProps[];
   dispatch: React.Dispatch<TaskActionProps>;
+  showFilter?: boolean;
+  setShowFilter?: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 const initialState: TaskProps[] | [] = [];
@@ -46,7 +48,7 @@ function reducer(state: TaskProps[], action: TaskActionProps) {
       return action.initialState ? action.initialState : state;
 
     case 'CREATE_TASK':
-      return [...state, action.payload];
+      return [action.payload, ...state];
 
     case 'EDIT_TASK':
       let tasks = state.map(item => {
@@ -79,8 +81,7 @@ export const TaskContext = React.createContext({} as TaskContextProps);
 // task context provider
 export const TaskContextProvider = ({children}: TaskContextProviderProps) => {
   const [state, dispatch] = useReducer(reducer, initialState);
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     // GET All tasks from db;
     getTasks().then(result => {
       dispatch({
