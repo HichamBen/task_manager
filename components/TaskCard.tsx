@@ -37,6 +37,7 @@ function TaskCard({
   dispatch,
   isOver,
   isInArchive,
+  createdAt,
 }: TaskCardProps): JSX.Element {
   const navigation =
     useNavigation<RootTabScreenProps<'CreateTask'>['navigation']>();
@@ -169,13 +170,7 @@ function TaskCard({
       )}
 
       {/* creation date */}
-      <Text style={styles.creationDate}>
-        {new Date().toLocaleString('fr', {
-          year: 'numeric',
-          month: 'numeric',
-          day: '2-digit',
-        })}
-      </Text>
+      <Text style={styles.creationDate}>{createdAt}</Text>
 
       {!isInArchive && (
         <TouchableOpacity

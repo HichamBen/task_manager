@@ -1,5 +1,6 @@
 import React, {ReactNode, useLayoutEffect, useReducer} from 'react';
 import {getTasks} from '../db/db-service';
+import {FilterProps} from './FilterContext';
 
 export type CheklistProps = {
   checkListItemId: string;
@@ -15,6 +16,7 @@ export type TaskProps = {
   checkList?: CheklistProps[];
   isOver?: boolean;
   isCompleted?: boolean;
+  createdAt?: string;
 };
 
 type TaskContextProviderProps = {
@@ -36,8 +38,7 @@ export type TaskActionProps =
 type TaskContextProps = {
   state: TaskProps[];
   dispatch: React.Dispatch<TaskActionProps>;
-  showFilter?: boolean;
-  setShowFilter?: React.Dispatch<React.SetStateAction<boolean>>;
+  searchAndFilter: (params: FilterProps) => void;
 };
 
 const initialState: TaskProps[] | [] = [];
@@ -81,9 +82,11 @@ export const TaskContext = React.createContext({} as TaskContextProps);
 // task context provider
 export const TaskContextProvider = ({children}: TaskContextProviderProps) => {
   const [state, dispatch] = useReducer(reducer, initialState);
+
   useLayoutEffect(() => {
     // GET All tasks from db;
     getTasks().then(result => {
+      console.log('all', result);
       dispatch({
         type: 'DB_TASKS',
         initialState: result,
@@ -91,8 +94,18 @@ export const TaskContextProvider = ({children}: TaskContextProviderProps) => {
     });
   }, []);
 
+  const searchAndFilter = (params: FilterProps) => {
+    getTasks(params).then(result => {
+      console.log('qurey', result);
+      dispatch({
+        type: 'DB_TASKS',
+        initialState: result,
+      });
+    });
+  };
+
   return (
-    <TaskContext.Provider value={{state, dispatch}}>
+    <TaskContext.Provider value={{state, dispatch, searchAndFilter}}>
       {children}
     </TaskContext.Provider>
   );

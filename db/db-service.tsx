@@ -1,5 +1,6 @@
 import SQLite, {WebsqlDatabase} from 'react-native-sqlite-2';
 import {CheklistProps, TaskProps} from '../context/TaskContext';
+import {FilterProps} from '../context/FilterContext';
 
 export const getDBConnection = () => {
   return SQLite.openDatabase('task_manger', '1.0');
@@ -13,7 +14,8 @@ export const createTables = async (db: WebsqlDatabase) => {
       description TEXT NOT NULL,
       dueTime INTERGER,
       isOver INTERGER DEFAULT 0 NOT NULL,
-      isCompleted INTERGER DEFAULT 0 NOT NULL
+      isCompleted INTERGER DEFAULT 0 NOT NULL,
+      createdAt TEXT NOT NULL
    ) WITHOUT ROWID`;
   const queryCheckList = `CREATE TABLE IF NOT EXISTS checkList (
       checkListItemId TEXT PRIMARY KEY,
@@ -31,12 +33,12 @@ export const createTables = async (db: WebsqlDatabase) => {
 };
 
 export const createTask = async (db: WebsqlDatabase, taskData: TaskProps) => {
-  let {taskId, title, description, dueTime, checkList} = taskData;
+  let {taskId, title, description, dueTime, checkList, createdAt} = taskData;
 
-  let params = [taskId, title, description, dueTime || 'NULL'];
+  let params = [taskId, title, description, dueTime || 'NULL', createdAt];
   // create table if not exists
-  const queryTask = `INSERT INTO tasks (taskId,title, description, dueTime) 
-   VALUES (?, ?, ?, ?)`;
+  const queryTask = `INSERT INTO tasks (taskId,title, description, dueTime, createdAt) 
+   VALUES (?, ?, ?, ?, ?)`;
 
   db.transaction(txn => {
     txn.executeSql(
@@ -238,22 +240,41 @@ export const deleteFromCheckList = (db: WebsqlDatabase, itemId: string) => {
   });
 };
 
-export const getTasks = async () => {
+export const getTasks = async (params?: FilterProps) => {
   const database = getDBConnection();
-  const checkList = await getChecklistOnly(database);
-  const tasks = await getTasksOnly(database);
+  const tasks = await getTasksOnly(database, params);
+  const checkList = params?.sortBy.withList
+    ? await getChecklistOnly(database)
+    : undefined;
 
-  return tasks.map(task => {
-    let list = checkList.filter(item => item.taskId === task.taskId);
-    return {...task, checkList: list};
-  });
+  if (checkList) {
+    return tasks.map(task => {
+      let list = checkList.filter(item => item.taskId === task.taskId);
+      return {...task, checkList: list};
+    });
+  }
+  return tasks;
 };
 
 export const getTasksOnly = async (
   db: WebsqlDatabase,
+  params?: FilterProps,
 ): Promise<TaskProps[]> => {
-  const query = 'SELECT * FROM tasks';
+  let search = `(title LIKE '%${params?.search}%' OR description LIKE '%${params?.search}%')`;
 
+  let oldest = params?.sortBy.oldest ? 'ASC' : 'DESC';
+  let withDue = params?.sortBy.withDue ? '' : 'AND dueTime = "NULL"';
+  let over = params?.sortBy.isOver ? '' : 'AND isOver = 0';
+  let createdAt = params?.createdAt
+    ? `AND createdAt = ${params.createdAt}`
+    : '';
+
+  let query = 'SELECT * FROM tasks';
+  if (params) {
+    query = `SELECT * FROM tasks WHERE ${search} ${withDue} ${over} ${createdAt} ORDER BY createdAt ${oldest}`;
+  }
+
+  console.log(query);
   return new Promise(resolve =>
     db.transaction(txn => {
       txn.executeSql(

@@ -5,12 +5,15 @@ import Header from '../components/Header';
 import {TaskContext} from '../context/TaskContext';
 import TaskCard from '../components/TaskCard';
 import {styles} from '../screens/Home';
+import {FilterContextProvider} from '../context/FilterContext';
 
 function Archive(): JSX.Element {
   const {state, dispatch} = useContext(TaskContext);
   return (
     <SafeAreaView>
-      <Header />
+      <FilterContextProvider>
+        <Header />
+      </FilterContextProvider>
       <Text style={styles.title}>Filter by: All</Text>
       {state.length === 0 ? (
         <Text style={extraStyles.emptyList}>Empty</Text>
@@ -30,6 +33,7 @@ function Archive(): JSX.Element {
               dispatch={dispatch}
               isOver={item.isOver}
               isInArchive={true}
+              createdAt={item.createdAt}
             />
           )}
         />

@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useContext, useEffect, useRef, useState} from 'react';
 import {
   Animated,
   Dimensions,
@@ -12,17 +12,29 @@ import {
 import FilterRow from './FilterRow';
 import DatePicker from 'react-native-date-picker';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import {FilterContext} from '../context/FilterContext';
 
 const {height} = Dimensions.get('window');
 type FilterProps = {
   setShowFilter: React.Dispatch<React.SetStateAction<boolean>>;
+  filter: () => void;
 };
-function Filter({setShowFilter}: FilterProps) {
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [date, setDate] = useState<Date>();
+function Filter({setShowFilter, filter}: FilterProps) {
   const slide = useRef(new Animated.Value(250)).current;
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [oldest, setOldest] = useState(false);
+  const [withDue, setWithDue] = useState(true);
+  const [withList, setWidthList] = useState(true);
+  const [isOver, setIsOver] = useState(true);
+
+  const {filter: filterObj, dispatcher} = useContext(FilterContext);
 
   useEffect(() => {
+    setOldest(filterObj.sortBy.oldest);
+    setWithDue(filterObj.sortBy.withDue);
+    setWidthList(filterObj.sortBy.withList);
+    setIsOver(filterObj.sortBy.isOver);
+
     Animated.timing(slide, {
       toValue: 0,
       duration: 500,
@@ -44,6 +56,19 @@ function Filter({setShowFilter}: FilterProps) {
       setShowFilter(false);
     }, 500);
   };
+
+  useEffect(() => {
+    dispatcher({
+      type: 'FILTER',
+      payload: {
+        oldest,
+        withDue,
+        withList,
+        isOver,
+      },
+    });
+  }, [dispatcher, isOver, oldest, withDue, withList]);
+
   return (
     <Pressable style={styles.filterContainer} onPress={dismissFilter}>
       <Animated.View
@@ -63,32 +88,51 @@ function Filter({setShowFilter}: FilterProps) {
         <Text>Sorted By:</Text>
         <View style={styles.firstRow}>
           <View>
-            <FilterRow title="Old" />
-            <FilterRow title="New" value />
+            <FilterRow
+              title="Old"
+              setValue={() => setOldest(true)}
+              value={oldest}
+            />
+            <FilterRow
+              title="New"
+              setValue={() => setOldest(false)}
+              value={!oldest}
+            />
           </View>
           <View>
-            <FilterRow title="Over Dated" value />
-            <FilterRow title="With a check list" value />
-            <FilterRow title="With due time" value />
+            <FilterRow
+              title="Over Dated"
+              setValue={() => setIsOver(!isOver)}
+              value={isOver}
+            />
+            <FilterRow
+              title="With a check list"
+              setValue={() => setWidthList(!withList)}
+              value={withList}
+            />
+            <FilterRow
+              title="With due time"
+              setValue={() => setWithDue(!withDue)}
+              value={withDue}
+            />
           </View>
         </View>
         <View style={styles.btns}>
           <TouchableOpacity
             onPress={() => setShowDatePicker(true)}
-            style={[styles.completedBtn, {width: date ? 180 : 120}]}>
+            style={[
+              styles.completedBtn,
+              {width: filterObj.createdAt ? 180 : 120},
+            ]}>
             <Icon name="archive" size={20} color="#557cff" />
             <Text style={styles.textCompBtn}>
-              {date
-                ? 'Tasks in ' +
-                  date.toLocaleString('fr', {
-                    year: 'numeric',
-                    month: 'numeric',
-                    day: '2-digit',
-                  })
+              {filterObj.createdAt
+                ? 'Tasks in ' + filterObj.createdAt
                 : 'Pick a Day'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
+            onPress={() => filter()}
             style={[
               styles.completedBtn,
               {borderWidth: 0, backgroundColor: '#557cff'},
@@ -103,12 +147,22 @@ function Filter({setShowFilter}: FilterProps) {
         mode="date"
         open={showDatePicker}
         date={new Date()}
-        onConfirm={d => {
-          setDate(d);
+        onConfirm={date => {
+          dispatcher({
+            type: 'BY_DATE',
+            createdAt: date.toLocaleString('fr', {
+              year: 'numeric',
+              month: 'numeric',
+              day: '2-digit',
+            }),
+          });
           setShowDatePicker(false);
         }}
         onCancel={() => {
-          setDate(undefined);
+          dispatcher({
+            type: 'BY_DATE',
+            createdAt: undefined,
+          });
           setShowDatePicker(false);
         }}
       />

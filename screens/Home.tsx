@@ -8,6 +8,7 @@ import {TaskContext} from '../context/TaskContext';
 import {useNavigation} from '@react-navigation/native';
 import {RootTabScreenProps} from '../navigation/types';
 import {getDBConnection, taskOver} from '../db/db-service';
+import {FilterContextProvider} from '../context/FilterContext';
 
 function Home(): JSX.Element {
   const navigation = useNavigation<RootTabScreenProps<'Home'>['navigation']>();
@@ -50,7 +51,9 @@ function Home(): JSX.Element {
 
   return (
     <SafeAreaView>
-      <Header />
+      <FilterContextProvider>
+        <Header />
+      </FilterContextProvider>
       <Text style={styles.title}>Filter by: All</Text>
       {state.length === 0 ? (
         <TouchableOpacity
@@ -73,6 +76,7 @@ function Home(): JSX.Element {
               dueTime={item.dueTime}
               dispatch={dispatch}
               isOver={item.isOver}
+              createdAt={item.createdAt}
             />
           )}
         />
