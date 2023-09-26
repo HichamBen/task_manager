@@ -89,12 +89,12 @@ function Filter({setShowFilter, filter}: FilterProps) {
         <View style={styles.firstRow}>
           <View>
             <FilterRow
-              title="Old"
+              title="Oldest"
               setValue={() => setOldest(true)}
               value={oldest}
             />
             <FilterRow
-              title="New"
+              title="Newest"
               setValue={() => setOldest(false)}
               value={!oldest}
             />

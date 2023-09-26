@@ -54,7 +54,7 @@ function Home(): JSX.Element {
       <FilterContextProvider>
         <Header />
       </FilterContextProvider>
-      <Text style={styles.title}>Filter by: All</Text>
+
       {state.length === 0 ? (
         <TouchableOpacity
           onPress={() => navigation.jumpTo('CreateTask')}
@@ -90,12 +90,6 @@ export const styles = StyleSheet.create({
     width: 100,
     marginHorizontal: 20,
     marginVertical: 20,
-  },
-  title: {
-    margin: 10,
-    fontFamily: 'Montserrat-VariableFont_wght',
-    fontWeight: 'bold',
-    color: 'gray',
   },
   taskList: {
     marginBottom: 100,

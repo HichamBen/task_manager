@@ -14,7 +14,6 @@ function Archive(): JSX.Element {
       <FilterContextProvider>
         <Header />
       </FilterContextProvider>
-      <Text style={styles.title}>Filter by: All</Text>
       {state.length === 0 ? (
         <Text style={extraStyles.emptyList}>Empty</Text>
       ) : (

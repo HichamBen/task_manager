@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  Text,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Filter from './Filter';
@@ -66,6 +67,13 @@ const Header = () => {
         </View>
       </View>
       {showFilter && <Filter filter={filter} setShowFilter={setShowFilter} />}
+      <Text style={styles.title}>
+        Filter by: {filterObj.sortBy.oldest ? 'Oldest' : 'Newest'}
+        {!filterObj.sortBy.withDue && ', without duetime'}
+        {!filterObj.sortBy.withList && ', without checklist'}
+        {!filterObj.sortBy.isOver && ', without checklist'}
+        {filterObj.createdAt && `, and created on ${filterObj.createdAt}`}
+      </Text>
     </>
   );
 };
@@ -112,6 +120,12 @@ const styles = StyleSheet.create({
     height: 35,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  title: {
+    margin: 10,
+    fontFamily: 'Montserrat-VariableFont_wght',
+    fontWeight: 'bold',
+    color: 'gray',
   },
 });
 export default Header;

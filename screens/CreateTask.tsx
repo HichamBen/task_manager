@@ -144,6 +144,23 @@ function CreateTask(): JSX.Element {
       '25/9/2023',
     ];
 
+    if (dueTime) {
+      let date = new Date().getTime();
+      if (dueTime <= date) {
+        return Alert.alert(
+          'Date Over!',
+          'The Due Date is over add a future new duedate',
+          [
+            {
+              text: 'OK',
+              style: 'cancel',
+            },
+          ],
+          {cancelable: true},
+        );
+      }
+    }
+
     const payload = {
       taskId: title.slice(0, 2) + Date.now(),
       title,
@@ -243,8 +260,19 @@ function CreateTask(): JSX.Element {
       let isOver = false;
       if (dueTime) {
         let date = new Date().getTime();
-        if (dueTime < date) {
+        if (dueTime <= date) {
           isOver = true;
+          return Alert.alert(
+            'Date Over!',
+            'The Due Date is over add a future new duedate',
+            [
+              {
+                text: 'OK',
+                style: 'cancel',
+              },
+            ],
+            {cancelable: true},
+          );
         } else {
           /* To do clear the previous notification*/
           let allNotification = await notifee.getTriggerNotifications();
@@ -262,7 +290,6 @@ function CreateTask(): JSX.Element {
       } else {
         notifee.getTriggerNotifications().then(allNotification => {
           allNotification.forEach(async ({notification}) => {
-            console.log(notification.data?.taskId, route.params?.taskId);
             if (notification.data?.taskId === route.params?.taskId) {
               await notifee.cancelTriggerNotification(
                 notification.id as string,

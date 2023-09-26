@@ -86,7 +86,6 @@ export const TaskContextProvider = ({children}: TaskContextProviderProps) => {
   useLayoutEffect(() => {
     // GET All tasks from db;
     getTasks().then(result => {
-      console.log('all', result);
       dispatch({
         type: 'DB_TASKS',
         initialState: result,
@@ -96,7 +95,6 @@ export const TaskContextProvider = ({children}: TaskContextProviderProps) => {
 
   const searchAndFilter = (params: FilterProps) => {
     getTasks(params).then(result => {
-      console.log('qurey', result);
       dispatch({
         type: 'DB_TASKS',
         initialState: result,
