@@ -93,7 +93,7 @@ export const TaskContextProvider = ({children}: TaskContextProviderProps) => {
     });
   }, []);
 
-  const searchAndFilter = (params: FilterProps) => {
+  const searchAndFilter = (params?: FilterProps) => {
     getTasks(params).then(result => {
       dispatch({
         type: 'DB_TASKS',

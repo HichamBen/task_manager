@@ -8,7 +8,6 @@ import {TaskContext} from '../context/TaskContext';
 import {useNavigation} from '@react-navigation/native';
 import {RootTabScreenProps} from '../navigation/types';
 import {getDBConnection, taskOver} from '../db/db-service';
-import {FilterContextProvider} from '../context/FilterContext';
 
 function Home(): JSX.Element {
   const navigation = useNavigation<RootTabScreenProps<'Home'>['navigation']>();
@@ -34,9 +33,7 @@ function Home(): JSX.Element {
       let taskID = notification?.data?.taskId;
 
       switch (typeEvent) {
-        case EventType.DISMISSED:
         case EventType.ACTION_PRESS:
-          overDate(taskID as string);
           if (pressAction?.id === 'default') {
             navigation.navigate('CreateTask', {
               taskId: taskID as string,
@@ -44,16 +41,17 @@ function Home(): JSX.Element {
             });
           }
           break;
+        case EventType.DELIVERED:
+          overDate(taskID as string);
+          break;
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <SafeAreaView>
-      <FilterContextProvider>
-        <Header />
-      </FilterContextProvider>
+    <SafeAreaView style={styles.container}>
+      <Header />
 
       {state.length === 0 ? (
         <TouchableOpacity
@@ -86,13 +84,16 @@ function Home(): JSX.Element {
 }
 
 export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: 'relative',
+  },
   navBtn: {
     width: 100,
     marginHorizontal: 20,
     marginVertical: 20,
   },
   taskList: {
-    marginBottom: 100,
     paddingHorizontal: 10,
   },
   emptyList: {

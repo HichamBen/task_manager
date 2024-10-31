@@ -1,8 +1,8 @@
 import React, {ReactNode, createContext, useReducer} from 'react';
 
 export type FilterProps = {
-  search: string;
-  sortBy: {
+  search?: string;
+  sortBy?: {
     oldest: boolean;
     withDue: boolean;
     withList: boolean;

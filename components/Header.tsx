@@ -6,20 +6,44 @@ import {
   TextInput,
   TouchableOpacity,
   Text,
+  Keyboard,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Filter from './Filter';
 import {useNavigation} from '@react-navigation/native';
 import {RootTabScreenProps} from '../navigation/types';
-import {FilterContext} from '../context/FilterContext';
 import {TaskContext} from '../context/TaskContext';
 
-const Header = () => {
+export type FilterPropsForState = {
+  sortBy: {
+    oldest: boolean;
+    withDue: boolean;
+    withList: boolean;
+    isOver: boolean;
+  };
+  createdAt?: string;
+};
+
+type HeaderProps = {
+  isInArchive?: boolean;
+};
+
+const Header = ({isInArchive}: HeaderProps) => {
   const navigation = useNavigation<RootTabScreenProps<'Home'>['navigation']>();
   const [isFocus, setIsFocus] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
-  const {filter: filterObj, dispatcher} = useContext(FilterContext);
   const {searchAndFilter} = useContext(TaskContext);
+  const [search, setSearch] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [filterObj, setFilterObj] = useState<FilterPropsForState>({
+    sortBy: {
+      oldest: false,
+      withDue: true,
+      withList: true,
+      isOver: true,
+    },
+    createdAt: undefined,
+  });
 
   useEffect(() => {
     navigation.setOptions({
@@ -29,10 +53,26 @@ const Header = () => {
     });
   }, [navigation, showFilter]);
 
-  const filter = () => {
-    searchAndFilter(filterObj);
-  };
+  useEffect(() => {
+    if (search === '') {
+      setIsSearching(false);
+      return filter();
+    }
+    setIsSearching(true);
+    let timeoutId = setTimeout(() => {
+      setIsSearching(false);
+      filter();
+    }, 500);
 
+    return () => {
+      clearTimeout(timeoutId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  const filter = () => {
+    searchAndFilter({search: search, ...filterObj});
+  };
   return (
     <>
       <View style={styles.header}>
@@ -43,37 +83,48 @@ const Header = () => {
 
         <View style={styles.headerLeftSide}>
           <View style={[styles.searchContainer, isFocus && styles.inputFocus]}>
-            <TouchableOpacity onPress={filter}>
+            <TouchableOpacity onPress={() => searchAndFilter(filterObj)}>
               <Icon name="search" size={25} color="white" />
             </TouchableOpacity>
             <TextInput
               style={styles.serachInput}
               placeholder="Search..."
               placeholderTextColor="white"
-              onChangeText={text => {
-                dispatcher({type: 'SEARCH', search: text});
-                filter();
-              }}
+              onChangeText={text => setSearch(text)}
+              value={search}
               onFocus={() => setIsFocus(true)}
               onBlur={() => setIsFocus(false)}
             />
           </View>
 
           <TouchableOpacity
-            onPress={() => setShowFilter(true)}
+            onPress={() => {
+              Keyboard.dismiss();
+              setShowFilter(true);
+            }}
             style={styles.filterIcon}>
             <Icon name="tune" size={30} color="white" />
           </TouchableOpacity>
         </View>
       </View>
-      {showFilter && <Filter filter={filter} setShowFilter={setShowFilter} />}
+      {showFilter && (
+        <Filter
+          filter={filter}
+          setFilterFields={setFilterObj}
+          filterFields={filterObj}
+          setShowFilter={setShowFilter}
+          isInArchive={isInArchive}
+        />
+      )}
       <Text style={styles.title}>
         Filter by: {filterObj.sortBy.oldest ? 'Oldest' : 'Newest'}
-        {!filterObj.sortBy.withDue && ', without duetime'}
-        {!filterObj.sortBy.withList && ', without checklist'}
-        {!filterObj.sortBy.isOver && ', without checklist'}
-        {filterObj.createdAt && `, and created on ${filterObj.createdAt}`}
+        {filterObj.sortBy.withDue ? '' : ', no duetime'}
+        {filterObj.sortBy.withList ? '' : ', no checklist'}
+        {filterObj.sortBy.isOver ? '' : ', no over dated'}
+        {filterObj.createdAt ? `, and created on ${filterObj.createdAt}` : ''}
       </Text>
+
+      {isSearching && <Text style={styles.searchIndecator}>Searching...</Text>}
     </>
   );
 };
@@ -126,6 +177,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat-VariableFont_wght',
     fontWeight: 'bold',
     color: 'gray',
+  },
+  searchIndecator: {
+    margin: 10,
+    color: 'lightgray',
   },
 });
 export default Header;

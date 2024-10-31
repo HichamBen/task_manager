@@ -1,9 +1,8 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useContext, useEffect, useRef, useState} from 'react';
+import React, {useRef, useState} from 'react';
 import {
   Animated,
   Dimensions,
-  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,37 +11,29 @@ import {
 import FilterRow from './FilterRow';
 import DatePicker from 'react-native-date-picker';
 import Icon from 'react-native-vector-icons/FontAwesome5';
-import {FilterContext} from '../context/FilterContext';
+import {FilterPropsForState} from './Header';
 
 const {height} = Dimensions.get('window');
-type FilterProps = {
+type FilterCompProps = {
+  isInArchive?: boolean;
   setShowFilter: React.Dispatch<React.SetStateAction<boolean>>;
   filter: () => void;
+  filterFields: FilterPropsForState;
+  setFilterFields: React.Dispatch<React.SetStateAction<FilterPropsForState>>;
 };
-function Filter({setShowFilter, filter}: FilterProps) {
-  const slide = useRef(new Animated.Value(250)).current;
+function Filter({
+  isInArchive,
+  setShowFilter,
+  filter,
+  filterFields,
+  setFilterFields,
+}: FilterCompProps) {
+  const slide = useRef(new Animated.Value(0)).current;
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [oldest, setOldest] = useState(false);
-  const [withDue, setWithDue] = useState(true);
-  const [withList, setWidthList] = useState(true);
-  const [isOver, setIsOver] = useState(true);
-
-  const {filter: filterObj, dispatcher} = useContext(FilterContext);
-
-  useEffect(() => {
-    setOldest(filterObj.sortBy.oldest);
-    setWithDue(filterObj.sortBy.withDue);
-    setWidthList(filterObj.sortBy.withList);
-    setIsOver(filterObj.sortBy.isOver);
-
-    Animated.timing(slide, {
-      toValue: 0,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const [oldest, setOldest] = useState(filterFields.sortBy.oldest);
+  const [withDue, setWithDue] = useState(filterFields.sortBy.withDue);
+  const [withList, setWidthList] = useState(filterFields.sortBy.withList);
+  const [isOver, setIsOver] = useState(filterFields.sortBy.isOver);
 
   const dismissFilter = () => {
     Animated.timing(slide, {
@@ -57,20 +48,8 @@ function Filter({setShowFilter, filter}: FilterProps) {
     }, 500);
   };
 
-  useEffect(() => {
-    dispatcher({
-      type: 'FILTER',
-      payload: {
-        oldest,
-        withDue,
-        withList,
-        isOver,
-      },
-    });
-  }, [dispatcher, isOver, oldest, withDue, withList]);
-
   return (
-    <Pressable style={styles.filterContainer} onPress={dismissFilter}>
+    <View style={styles.filterContainer}>
       <Animated.View
         style={[
           styles.filter,
@@ -82,37 +61,92 @@ function Filter({setShowFilter, filter}: FilterProps) {
             ],
           },
         ]}>
-        <TouchableOpacity onPress={dismissFilter} style={styles.closeBtn}>
-          <Icon name="times-circle" size={30} color="gray" />
-        </TouchableOpacity>
         <Text>Sorted By:</Text>
         <View style={styles.firstRow}>
           <View>
             <FilterRow
               title="Oldest"
-              setValue={() => setOldest(true)}
+              setValue={() => {
+                setFilterFields(prev => ({
+                  sortBy: {
+                    oldest: true,
+                    withDue: prev.sortBy.withDue,
+                    withList: prev.sortBy.withList,
+                    isOver: prev.sortBy.isOver,
+                  },
+                  createdAt: prev.createdAt,
+                }));
+                setOldest(true);
+              }}
               value={oldest}
             />
             <FilterRow
               title="Newest"
-              setValue={() => setOldest(false)}
+              setValue={() => {
+                setFilterFields(prev => ({
+                  sortBy: {
+                    oldest: false,
+                    withDue: prev.sortBy.withDue,
+                    withList: prev.sortBy.withList,
+                    isOver: prev.sortBy.isOver,
+                  },
+                  createdAt: prev.createdAt,
+                }));
+                setOldest(false);
+              }}
               value={!oldest}
             />
           </View>
           <View>
-            <FilterRow
-              title="Over Dated"
-              setValue={() => setIsOver(!isOver)}
-              value={isOver}
-            />
+            {!isInArchive && (
+              <FilterRow
+                title="Over Dated"
+                setValue={() => {
+                  setFilterFields(prev => ({
+                    sortBy: {
+                      oldest: prev.sortBy.oldest,
+                      withDue: prev.sortBy.withDue,
+                      withList: prev.sortBy.withList,
+                      isOver: !isOver,
+                    },
+                    createdAt: prev.createdAt,
+                  }));
+                  setIsOver(!isOver);
+                }}
+                value={isOver}
+              />
+            )}
             <FilterRow
               title="With a check list"
-              setValue={() => setWidthList(!withList)}
+              setValue={() => {
+                setFilterFields(prev => ({
+                  sortBy: {
+                    oldest: prev.sortBy.oldest,
+                    withDue: prev.sortBy.withDue,
+                    withList: !withList,
+                    isOver: prev.sortBy.isOver,
+                  },
+                  createdAt: prev.createdAt,
+                }));
+
+                setWidthList(!withList);
+              }}
               value={withList}
             />
             <FilterRow
               title="With due time"
-              setValue={() => setWithDue(!withDue)}
+              setValue={() => {
+                setFilterFields(prev => ({
+                  sortBy: {
+                    oldest: prev.sortBy.oldest,
+                    withDue: !withDue,
+                    withList: prev.sortBy.withList,
+                    isOver: prev.sortBy.isOver,
+                  },
+                  createdAt: prev.createdAt,
+                }));
+                setWithDue(!withDue);
+              }}
               value={withDue}
             />
           </View>
@@ -122,17 +156,20 @@ function Filter({setShowFilter, filter}: FilterProps) {
             onPress={() => setShowDatePicker(true)}
             style={[
               styles.completedBtn,
-              {width: filterObj.createdAt ? 180 : 120},
+              {width: filterFields.createdAt ? 180 : 120},
             ]}>
             <Icon name="archive" size={20} color="#557cff" />
             <Text style={styles.textCompBtn}>
-              {filterObj.createdAt
-                ? 'Tasks in ' + filterObj.createdAt
+              {filterFields.createdAt
+                ? 'Tasks in ' + filterFields.createdAt
                 : 'Pick a Day'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => filter()}
+            onPress={() => {
+              dismissFilter();
+              filter();
+            }}
             style={[
               styles.completedBtn,
               {borderWidth: 0, backgroundColor: '#557cff'},
@@ -148,25 +185,36 @@ function Filter({setShowFilter, filter}: FilterProps) {
         open={showDatePicker}
         date={new Date()}
         onConfirm={date => {
-          dispatcher({
-            type: 'BY_DATE',
+          setFilterFields(prev => ({
+            sortBy: {
+              oldest: prev.sortBy.oldest,
+              withDue: prev.sortBy.withDue,
+              withList: prev.sortBy.withList,
+              isOver: prev.sortBy.isOver,
+            },
             createdAt: date.toLocaleString('fr', {
               year: 'numeric',
               month: 'numeric',
               day: '2-digit',
             }),
-          });
+          }));
+
           setShowDatePicker(false);
         }}
         onCancel={() => {
-          dispatcher({
-            type: 'BY_DATE',
+          setFilterFields(prev => ({
+            sortBy: {
+              oldest: prev.sortBy.oldest,
+              withDue: prev.sortBy.withDue,
+              withList: prev.sortBy.withList,
+              isOver: prev.sortBy.isOver,
+            },
             createdAt: undefined,
-          });
+          }));
           setShowDatePicker(false);
         }}
       />
-    </Pressable>
+    </View>
   );
 }
 
@@ -218,4 +266,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Filter;
+export default React.memo(Filter);

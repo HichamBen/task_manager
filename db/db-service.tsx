@@ -43,18 +43,6 @@ export const createTask = async (db: WebsqlDatabase, taskData: TaskProps) => {
 
   db.transaction(txn => {
     txn.executeSql(queryTask, params, transaction => {
-      Alert.alert(
-        'Create new task successfully!',
-        '',
-        [
-          {
-            text: 'OK',
-            style: 'cancel',
-          },
-        ],
-        {cancelable: true},
-      );
-
       if (checkList?.length) {
         let checkParams: string[] = [];
 
@@ -72,6 +60,18 @@ export const createTask = async (db: WebsqlDatabase, taskData: TaskProps) => {
 
         transaction.executeSql(queryCheckList, checkParams);
       }
+
+      Alert.alert(
+        'Create new task successfully!',
+        '',
+        [
+          {
+            text: 'OK',
+            style: 'cancel',
+          },
+        ],
+        {cancelable: true},
+      );
     });
   });
 };
@@ -108,7 +108,11 @@ export const deleteTask = async (db: WebsqlDatabase, taskId: string) => {
   });
 };
 
-export const updateTask = (db: WebsqlDatabase, payload: TaskProps) => {
+export const updateTask = (
+  db: WebsqlDatabase,
+  payload: TaskProps,
+  isUndoTask?: boolean,
+) => {
   let checkList = payload.checkList;
 
   if (checkList) {
@@ -144,17 +148,19 @@ export const updateTask = (db: WebsqlDatabase, payload: TaskProps) => {
         payload.taskId,
       ],
       () => {
-        Alert.alert(
-          'Update successfully!',
-          `Update task ${payload.taskId}.`,
-          [
-            {
-              text: 'OK',
-              style: 'cancel',
-            },
-          ],
-          {cancelable: true},
-        );
+        isUndoTask
+          ? null
+          : Alert.alert(
+              'Update successfully!',
+              `Update task ${payload.taskId}.`,
+              [
+                {
+                  text: 'OK',
+                  style: 'cancel',
+                },
+              ],
+              {cancelable: true},
+            );
       },
     );
   });
@@ -211,7 +217,7 @@ export const getTasks = async (params?: FilterProps) => {
   const tasks = await getTasksOnly(database, params);
   const checkList = await getChecklistOnly(database);
 
-  if (params && !params.sortBy.withList) {
+  if (params && !params?.sortBy?.withList) {
     let list = checkList.map(item => item.taskId);
     return tasks.filter(task => !list.includes(task.taskId));
   }
@@ -228,9 +234,9 @@ export const getTasksOnly = async (
 ): Promise<TaskProps[]> => {
   let search = `(title LIKE '%${params?.search}%' OR description LIKE '%${params?.search}%')`;
 
-  let oldest = params?.sortBy.oldest ? 'ASC' : 'DESC';
-  let withDue = params?.sortBy.withDue ? '' : 'AND dueTime = "NULL"';
-  let over = params?.sortBy.isOver ? '' : 'AND isOver = 0';
+  let oldest = params?.sortBy?.oldest ? 'ASC' : 'DESC';
+  let withDue = params?.sortBy?.withDue ? '' : 'AND dueTime = "NULL"';
+  let over = params?.sortBy?.isOver ? '' : 'AND isOver = 0';
   let createdAt = params?.createdAt
     ? `AND createdAt = '${params.createdAt}'`
     : '';

@@ -134,16 +134,6 @@ function CreateTask(): JSX.Element {
       );
     }
 
-    let dates = [
-      '25/9/2023',
-      '10/1/2023',
-      '15/3/2023',
-      '30/10/2023',
-      '2/4/2023',
-      '25/9/2023',
-      '25/9/2023',
-    ];
-
     if (dueTime) {
       let date = new Date().getTime();
       if (dueTime <= date) {
@@ -161,20 +151,20 @@ function CreateTask(): JSX.Element {
       }
     }
 
+    let taskID = title.slice(0, 2) + Date.now();
     const payload = {
-      taskId: title.slice(0, 2) + Date.now(),
+      taskId: taskID,
       title,
       description,
       dueTime,
       checkList: removeCheckListEmptyItem,
       isOver: false,
       isCompleted: false,
-      createdAt: dates[Math.floor(Math.random() * dates.length)],
-      // new Date().toLocaleString('fr', {
-      //   year: 'numeric',
-      //   month: 'numeric',
-      //   day: '2-digit',
-      // }),
+      createdAt: new Date().toLocaleString('fr', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+      }),
     };
 
     dispatch({
@@ -192,7 +182,7 @@ function CreateTask(): JSX.Element {
     setCheckList([]);
 
     if (dueTime) {
-      pushNotification(dueTime, title.slice(0, 2) + Date.now());
+      pushNotification(dueTime, taskID);
     }
 
     navigation.jumpTo('Home');

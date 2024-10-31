@@ -71,7 +71,13 @@ function App(): JSX.Element {
             name="CreateTask"
             component={CreateTask}
           />
-          <TabStack.Screen name="Archive" component={Archive} />
+          <TabStack.Screen
+            options={{
+              unmountOnBlur: true,
+            }}
+            name="Archive"
+            component={Archive}
+          />
           <TabStack.Screen name="Drafts" component={Drafts} />
         </TabStack.Navigator>
       </TaskContextProvider>

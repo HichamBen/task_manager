@@ -25,11 +25,14 @@ function ProgressBar({checkList}: ProgressBarProps): JSX.Element {
         itemsChecked++;
       }
     }
-    if (percentage * itemsChecked === 100) {
-      setwidth(`${percentage * itemsChecked + 6}%`);
-    } else {
-      setwidth(`${percentage * itemsChecked}%`);
-    }
+
+    setwidth(
+      `${Math.ceil(
+        percentage * itemsChecked
+          ? percentage * itemsChecked + 6
+          : percentage * itemsChecked,
+      )}%`,
+    );
   }, [checkList]);
 
   return (

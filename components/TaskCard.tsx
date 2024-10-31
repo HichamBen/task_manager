@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 import notifee from '@notifee/react-native';
 import {
   View,
@@ -6,6 +7,9 @@ import {
   TouchableOpacity,
   Modal,
   Dimensions,
+  Alert,
+  Pressable,
+  NativeModules,
 } from 'react-native';
 import React, {memo, useEffect, useState} from 'react';
 import Icon from 'react-native-vector-icons/FontAwesome5';
@@ -20,13 +24,20 @@ import {
   getDBConnection,
   updateCheckList,
 } from '../db/db-service';
+import {LayoutAnimation} from 'react-native';
 
 type TaskCardProps = TaskProps & {
   dispatch: React.Dispatch<TaskActionProps>;
   isInArchive?: boolean;
+  undoTask?: (payload: TaskProps) => void;
 };
 
 const {height} = Dimensions.get('window');
+
+const {UIManager} = NativeModules;
+
+UIManager.setLayoutAnimationEnabledExperimental &&
+  UIManager.setLayoutAnimationEnabledExperimental(true);
 
 function TaskCard({
   taskId,
@@ -38,12 +49,19 @@ function TaskCard({
   isOver,
   isInArchive,
   createdAt,
+  undoTask,
 }: TaskCardProps): JSX.Element {
+  const [slideLeft, setSlideLeft] = useState(0);
+
   const navigation =
     useNavigation<RootTabScreenProps<'CreateTask'>['navigation']>();
 
   const [disabled, setDisabled] = useState(false);
   const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    LayoutAnimation.spring();
+  }, [slideLeft]);
 
   useEffect(() => {
     if (checkList) {
@@ -85,19 +103,36 @@ function TaskCard({
   };
 
   const deleteATask = async (id: string) => {
-    dispatch({
-      type: 'DELETE_TASK',
-      payload: {
-        title,
-        description,
-        taskId: id,
-      },
-    });
+    Alert.alert(
+      'Deletion task',
+      `Are you sure you want to delete ${title} task.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'destructive',
+        },
+        {
+          text: 'Confirm',
+          onPress: () => {
+            dispatch({
+              type: 'DELETE_TASK',
+              payload: {
+                title,
+                description,
+                taskId: id,
+              },
+            });
 
-    removeNotification();
-    // Delete the Task from db
-    let database = getDBConnection();
-    deleteTask(database, id);
+            removeNotification();
+            // Delete the Task from db
+            let database = getDBConnection();
+            deleteTask(database, id);
+          },
+          style: 'default',
+        },
+      ],
+      {cancelable: true},
+    );
   };
 
   const editCheckList = async (itemId: string, isChecked: boolean) => {
@@ -123,61 +158,104 @@ function TaskCard({
   };
 
   return (
-    <View style={styles.card}>
-      {/* title */}
-      <Text style={styles.title}>{title}</Text>
+    <View style={styles.parentHolder}>
+      <Pressable
+        onLongPress={() => {
+          setSlideLeft(prev => (prev === 0 ? -100 : 0));
+        }}
+        delayLongPress={500}
+        style={[
+          styles.card,
+          {
+            marginLeft: slideLeft,
+            borderColor: slideLeft === 0 ? 'lightgray' : '#557cff30',
+          },
+        ]}>
+        {/* title */}
+        <Text style={styles.title}>{title}</Text>
 
-      {/* description */}
-      <Text style={styles.description}>{description}</Text>
+        {/* description */}
+        <Text style={styles.description}>{description}</Text>
 
-      {/* cheklist */}
-      {checkList &&
-        checkList.map(item => (
-          <CheckItem
-            key={item.checkListItemId}
-            id={item.checkListItemId}
-            description={item.content}
-            isChecked={item.isChecked}
-            editCheckList={editCheckList}
-            isInArchive={Boolean(isInArchive)}
-          />
-        ))}
+        {/* cheklist */}
+        {checkList &&
+          checkList.map(item => (
+            <CheckItem
+              key={item.checkListItemId}
+              id={item.checkListItemId}
+              description={item.content}
+              isChecked={item.isChecked}
+              editCheckList={editCheckList}
+              isInArchive={Boolean(isInArchive)}
+            />
+          ))}
 
-      {/* edit & delete icons */}
-      <View style={styles.icons}>
+        {/* edit & delete icons */}
+        <View style={styles.icons}>
+          {isInArchive ? (
+            <View
+              style={[
+                styles.selectButton,
+                slideLeft === 0
+                  ? styles.disactiveSelectButton
+                  : styles.activeSelectButton,
+              ]}
+            />
+          ) : (
+            <TouchableOpacity
+              onPress={() =>
+                navigation.jumpTo('CreateTask', {taskId, isEdit: true})
+              }>
+              <Icon name="edit" size={20} color="#557cff" />
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity onPress={() => deleteATask(taskId)}>
+            <Icon name="trash-alt" size={20} color="#ff6c6c" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Due date badge */}
+        {dueTime && (
+          <Text style={[styles.duedate, isOver && styles.duedateOver]}>
+            {isOver ? 'Over' : 'Due Date'}
+          </Text>
+        )}
+
+        {/* progress bar */}
+        {checkList && !isInArchive && (
+          <ProgressBar key={taskId} checkList={checkList} />
+        )}
+
+        {/* creation date */}
+        <Text style={styles.creationDate}>{createdAt}</Text>
+
+        {!isInArchive && (
+          <TouchableOpacity
+            onPress={() => setShowModal(true)}
+            disabled={disabled}
+            style={[styles.completedBtn, disabled && styles.completedBtnDis]}>
+            <Text style={styles.textCompBtn}>Completed</Text>
+          </TouchableOpacity>
+        )}
+      </Pressable>
+      {/* return & undo */}
+      {isInArchive && undoTask && (
         <TouchableOpacity
+          style={styles.returnUndo}
           onPress={() =>
-            navigation.jumpTo('CreateTask', {taskId, isEdit: true})
+            undoTask({
+              taskId,
+              title,
+              description,
+              dueTime,
+              checkList,
+              isOver,
+              isCompleted: false,
+            })
           }>
-          <Icon name="edit" size={20} color="#557cff" />
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => deleteATask(taskId)}>
-          <Icon name="trash-alt" size={20} color="#ff6c6c" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Due date badge */}
-      {dueTime && (
-        <Text style={[styles.duedate, isOver && styles.duedateOver]}>
-          {isOver ? 'Over' : 'Due Date'}
-        </Text>
-      )}
-
-      {/* progress bar */}
-      {checkList && !isInArchive && (
-        <ProgressBar key={taskId} checkList={checkList} />
-      )}
-
-      {/* creation date */}
-      <Text style={styles.creationDate}>{createdAt}</Text>
-
-      {!isInArchive && (
-        <TouchableOpacity
-          onPress={() => setShowModal(true)}
-          disabled={disabled}
-          style={[styles.completedBtn, disabled && styles.completedBtnDis]}>
-          <Text style={styles.textCompBtn}>Completed</Text>
+          <Icon name="undo" size={20} color="#557cff" />
+          <Text>Undo task</Text>
         </TouchableOpacity>
       )}
 
@@ -225,13 +303,15 @@ function TaskCard({
 }
 
 const styles = StyleSheet.create({
+  parentHolder: {
+    flexDirection: 'row',
+    marginBottom: 25,
+  },
   card: {
     width: '100%',
-    marginBottom: 30,
     padding: 10,
     paddingBottom: 20,
     borderWidth: 1,
-    borderColor: '#557cff20',
     borderRadius: 10,
     position: 'relative',
   },
@@ -336,6 +416,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '70%',
     marginTop: 35,
+  },
+  selectButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+  },
+  activeSelectButton: {
+    backgroundColor: '#557cff30',
+  },
+  disactiveSelectButton: {
+    backgroundColor: 'lightgray',
+  },
+  returnUndo: {
+    width: 100,
+    borderRadius: 10,
+    marginLeft: 1,
+    backgroundColor: '#557cff30',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
